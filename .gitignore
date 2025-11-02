@@ -1,0 +1,19 @@
+# Generated src directory
+server/src/generated/
+
+# Server build target directory
+server/target/
+
+# MacOS files
+.DS_Store
+
+# VSCode temp directory
+.vscode/
+
+# Client build directory
+client/build
+
+# Gradle cache
+.gradle
+
+**/.idea/

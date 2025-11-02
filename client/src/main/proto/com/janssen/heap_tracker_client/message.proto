@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package protos;
+
+message HeapOperations {
+    message HeapOperation {
+        enum Type {
+            TYPE_ALLOC = 0;
+            TYPE_FREE = 1;
+        }
+
+        Type type = 1;
+        int64 address = 2;
+        optional int64 size = 3;
+    }
+
+    repeated HeapOperation heap_operation = 1;
+}
