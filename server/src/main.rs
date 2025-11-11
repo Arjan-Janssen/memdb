@@ -1,5 +1,4 @@
 use protobuf::Message;
-use backtrace;
 use std::{
     alloc::{GlobalAlloc, Layout, System},
     cell::Cell,
@@ -32,6 +31,7 @@ pub struct Server {
     server_thread_id: thread::ThreadId,
     sender: SyncSender<HeapOperation>,
     receiver: Receiver<HeapOperation>,
+    num_heap_operations_sent: usize,
 }
 
 pub enum NetworkError {
@@ -63,7 +63,6 @@ impl Server {
 
     fn establish_connection() -> Result<TcpStream, NetworkError> {
         let listener = TcpListener::bind("127.0.0.1:8989").unwrap();
-
         for stream in listener.incoming() {
             return Ok(stream.unwrap());
         }
@@ -77,14 +76,14 @@ impl Server {
     }
 
     pub fn flush(&mut self) {
-        println!("Flush");
-
-        let mut v: Vec<u8> = vec![];
-        let _ = self.proto.write_to_vec(&mut v);
-        let result = self.stream.write(&v);
+        let mut protoBytesBuffer: Vec<u8> = vec![];
+        let _ = self.proto.write_to_vec(&mut protoBytesBuffer);
+        let result = self.stream.write(&protoBytesBuffer);
         if result.is_err() {
-            println!("Unable to write to stream!");
+            println!("Unable to write heap operations to socket stream! Connection lost?");
         }
+
+        self.num_heap_operations_sent += self.proto.heap_operations.len();
         self.proto.clear();
     }
 
@@ -138,7 +137,6 @@ impl Server {
         loop {
             match self.receiver.recv() {
                 Ok(heap_op) => {
-                    println!("Push operation!");
                     self.push(heap_op);
                 }
 
@@ -160,7 +158,6 @@ pub fn run_server() -> Result<JoinHandle<()>, std::io::Error> {
             match server {
                 Ok(mut server) => {
                     SERVER.store(&mut server, Ordering::Release);
-
                     println!("Connection established!");
                     server.run();
                 }
@@ -176,12 +173,31 @@ static SERVER: AtomicPtr<Server> =
 
 struct TrackedAllocator {}
 
-//impl TrackedAllocator {
-//}
-
 thread_local! {
-    static ALLOC_COUNTER: Cell<i32> = const { Cell::new(0) };
-    static DEALLOC_COUNTER: Cell<i32> = const { Cell::new(0) };
+    static RECURSION_DEPTH: Cell<i32> = const { Cell::new(0) };
+}
+pub struct ScopedRecursionDepthLimiter {
+    recursion_limit: i32,
+}
+
+impl ScopedRecursionDepthLimiter {
+    fn new(limit: i32) -> Self {
+        RECURSION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+        Self{recursion_limit: limit}
+    }
+
+    fn limit_reached(&self) -> bool {
+        let mut hit = false;
+        RECURSION_DEPTH.with(|depth| hit = depth.get() >= self.recursion_limit);
+        hit
+    }
+}
+
+impl Drop for ScopedRecursionDepthLimiter {
+    fn drop(&mut self) {
+        RECURSION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+        RECURSION_DEPTH.with(|depth| assert!(depth.get() >= 0));
+    }
 }
 
 unsafe impl GlobalAlloc for TrackedAllocator {
@@ -189,13 +205,11 @@ unsafe impl GlobalAlloc for TrackedAllocator {
         let ptr = unsafe { System.alloc(layout) };
         let server_ptr = SERVER.load(Ordering::Acquire);
         if !server_ptr.is_null() {
-            let mut count = 0;
-            ALLOC_COUNTER.with(|c| count = c.get());
-            if count > 0 {
+            let recursion_limiter = ScopedRecursionDepthLimiter::new(2);
+            if recursion_limiter.limit_reached() {
                 return ptr;
             }
-           
-            ALLOC_COUNTER.with(|c| c.set(c.get() + 1));
+
             unsafe {
                 (*server_ptr).send(HeapOperation::Alloc {
                     address: ptr as usize,
@@ -203,7 +217,6 @@ unsafe impl GlobalAlloc for TrackedAllocator {
                     thread_id: thread::current().id(),
                 });
             }
-            ALLOC_COUNTER.with(|c| c.set(c.get() - 1));            
         }
 
         ptr
@@ -211,18 +224,11 @@ unsafe impl GlobalAlloc for TrackedAllocator {
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let server_ptr = SERVER.load(Ordering::Acquire);
-        let mut count = 0;
-        DEALLOC_COUNTER.with(|c| count = c.get());
-
         if !server_ptr.is_null() {
-            let mut count = 0;
-            DEALLOC_COUNTER.with(|c| count = c.get());
-            // skip recursive allocations
-            if count > 0 {
+            let recursion_limiter = ScopedRecursionDepthLimiter::new(2);
+            if recursion_limiter.limit_reached() {
                 return;
             }
-
-            DEALLOC_COUNTER.with(|c| c.set(c.get() + 1));
             unsafe {
                 (*server_ptr).send(HeapOperation::Dealloc {
                     address: ptr as usize,
@@ -230,7 +236,6 @@ unsafe impl GlobalAlloc for TrackedAllocator {
                     thread_id: thread::current().id(),
                 });
             }            
-            DEALLOC_COUNTER.with(|c| c.set(c.get() - 1));            
         }
 
         unsafe { System.dealloc(ptr, layout) }
@@ -247,9 +252,9 @@ fn main() {
 
     let mut v = vec![1, 2, 3];
     while true {
-        println!("Push item...");
-        thread::sleep(Duration::from_secs(1));
-        v.push(3);
+        thread::sleep(Duration::from_millis(500));
+        println!("Increase vector capacity");
+        v.reserve(v.capacity() + 10);
     }
 
     let join_result = server_thread.unwrap().join();

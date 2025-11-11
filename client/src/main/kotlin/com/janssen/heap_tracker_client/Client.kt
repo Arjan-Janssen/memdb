@@ -21,6 +21,7 @@ class Client {
         var inputStream = socket.inputStream
         while (true) {
             sleep(500)
+            println("Checking bytes")
             val bytesAvailable = inputStream.available()
             if (bytesAvailable == 0) {
                 continue
