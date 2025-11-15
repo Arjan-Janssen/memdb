@@ -9,11 +9,19 @@ message HeapOperation {
     }
 
     Type type = 1;
-    int64 address = 2;
-    optional int64 size = 3;
-    uint64 thread_id = 4;
+    int64 micros_since_server_start = 2;
+    int64 address = 3;
+    optional int64 size = 4;
+    uint64 thread_id = 5;
+}
+
+message Marker {
+    int64 position = 1;
+    string name = 2;
 }
 
 message HeapOperations {
     repeated HeapOperation heap_operations = 1;
+    repeated Marker marker = 2;
+    bool end_of_file = 3;
 }
