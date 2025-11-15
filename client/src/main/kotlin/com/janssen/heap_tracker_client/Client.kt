@@ -1,6 +1,6 @@
 package com.janssen.heap_tracker_client
 
-import protos.Message
+import heap_tracker.Message
 import java.lang.Thread.sleep
 import java.net.ConnectException
 import java.net.InetSocketAddress
@@ -16,24 +16,34 @@ class Heap {
         allocations[address] = Alloc(size)
     }
 
-    fun free(address: Long) {
+    fun dealloc(address: Long) {
         allocations.remove(address)
     }
 
     val allocations = mutableMapOf<Long, Alloc>()
 }
+
 class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<Marker>) {
+    inner class Diff(val fromInclusive: Long, val toExclusive: Long) {
+    }
+
     enum class HeapOperationType {
         Alloc,
-        Free,
+        Dealloc,
     }
-    data class HeapOperation(val type: HeapOperationType, val durationSinceServerStart: Duration, val address: Long, val size: Long = 0)
+    data class HeapOperation(val type: HeapOperationType,
+                             val durationSinceServerStart: Duration,
+                             val address: Long,
+                             val size: Long)
     data class Marker(val operationSequenceNumber: Long, val name: String)
 
     fun print() {
-        println("Heap operations:")
+        println("${heapOperations.size} heap operations:")
+        var cumulativeSize = 0L
         heapOperations.forEach {
             println("${it}")
+            cumulativeSize += if (it.type == HeapOperationType.Alloc) it.size else -it.size;
+            println("cumulative size: $cumulativeSize")
         }
 
         println("Markers:")
@@ -53,31 +63,30 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
             return TrackedHeap(heapOperations, markers)
         }
 
-        fun fromProtobuf(message: protos.Message.HeapOperations) : TrackedHeap {
-            val validProtoHeapOperations = message.heapOperationList.filter {
-                it.type != Message.HeapOperations.HeapOperation.Type.UNRECOGNIZED
+        fun fromProtobuf(update: heap_tracker.Message.Update) : TrackedHeap {
+            val validProtoHeapOperations = update.heapOperationList.filter {
+                it.type != Message.Update.HeapOperation.Type.UNRECOGNIZED
             }
             val heapOperations = validProtoHeapOperations.map {
-                    val durationSinceServerStart = it.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS);
-                    val heapOperationType =
-                        when (it.type) {
-                            Message.HeapOperations.HeapOperation.Type.TYPE_ALLOC ->
-                                HeapOperationType.Alloc
-                            else -> {
-                                HeapOperationType.Free
-                            }
+                val durationSinceServerStart = it.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS);
+                val heapOperationType =
+                    when (it.type) {
+                        Message.Update.HeapOperation.Type.ALLOC ->
+                            HeapOperationType.Alloc
+                        else -> {
+                            HeapOperationType.Dealloc
                         }
-                    TrackedHeap.HeapOperation(heapOperationType, durationSinceServerStart, it.address, it.size)
-                }
+                    }
+                TrackedHeap.HeapOperation(heapOperationType, durationSinceServerStart, it.address, it.size)
+            }
 
-            val markers = message.markerList.map {
-                Marker(it.lastOperationSequenceNumber, it.name);
+            val markers = update.markerList.map {
+                Marker(it.firstOperationSeqNo, it.name);
             }
 
             return TrackedHeap(heapOperations, markers)
         }
     }
-
 }
 
 class Client {
@@ -102,7 +111,7 @@ class Client {
             val bytesAvailable = socket.inputStream.available()
             if (bytesAvailable >  0) {
                 val bytesSent = socket.inputStream.readNBytes(bytesAvailable)
-                val message = protos.Message.HeapOperations.parseFrom(bytesSent)
+                val message = heap_tracker.Message.Update.parseFrom(bytesSent)
                 trackedHeaps.add(TrackedHeap.fromProtobuf(message))
                 if (message.endOfFile) {
                     println("End of file. Closing connection");
