@@ -1,8 +1,8 @@
 # Generated src directory
-server/src/generated/
+server/src/generated
 
 # Server build target directory
-server/target/
+server/target
 
 # MacOS files
 .DS_Store
