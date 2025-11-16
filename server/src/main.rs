@@ -284,12 +284,12 @@ fn send_server_message(message: ServerMessage) {
     }
 }
 
-fn send_terminate() {
-    send_server_message(ServerMessage::Terminate);
-}
-
 fn send_marker(name: &'static str) {
     send_server_message(ServerMessage::Marker(name));
+}
+
+fn send_terminate() {
+    send_server_message(ServerMessage::Terminate);
 }
 
 impl TrackedAllocator {
