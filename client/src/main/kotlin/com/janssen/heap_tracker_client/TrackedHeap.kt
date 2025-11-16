@@ -17,6 +17,7 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
                              val durationSinceServerStart: Duration,
                              val address: Long,
                              val size: Long,
+                             val thread_id: Long,
                              val backtrace: String) {
         companion object {
             fun fromProtobuf(proto: heap_tracker.Message.HeapOperation) : HeapOperation {
@@ -30,7 +31,7 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
                         }
                     }
 
-                return HeapOperation(heapOperationType, durationSinceServerStart, proto.address, proto.size, proto.backtrace)
+                return HeapOperation(heapOperationType, durationSinceServerStart, proto.address, proto.size, proto.threadId, proto.backtrace)
             }
         }
     }

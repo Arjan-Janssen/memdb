@@ -7,11 +7,8 @@ use std::{
         atomic::{AtomicPtr, Ordering},
         mpsc::{self, Receiver, SyncSender, channel},
     },
-    thread,
-    thread::JoinHandle,
-    thread::ThreadId,
-    time::Duration,
-    time::SystemTime,
+    thread::{self, JoinHandle, ThreadId},
+    time::{Duration, SystemTime},
 };
 mod generated;
 
@@ -25,7 +22,7 @@ pub enum HeapOperationKind {
 pub struct HeapOperation {
     pub address: usize,
     pub layout: Layout,
-    pub thread_id: ThreadId,
+    pub thread_id: u64,
     pub kind: HeapOperationKind,
     pub backtrace: String,
 }
@@ -45,7 +42,7 @@ pub struct Server {
     settings: Settings,
     update: generated::message::Update,
     stream: TcpStream,
-    server_thread_id: thread::ThreadId,
+    server_thread_id: ThreadId,
     sender: SyncSender<ServerMessage>,
     receiver: Receiver<ServerMessage>,
     num_heap_operations_sent: usize,
@@ -139,18 +136,21 @@ impl Server {
     fn create_proto_heap_op(
         duration_since_server_start: Duration,
         heap_op: HeapOperation,
+        store_backtrace: bool,
     ) -> generated::message::HeapOperation {
         let mut proto_op = generated::message::HeapOperation::new();
         proto_op.micros_since_server_start =
             duration_since_server_start.as_micros().try_into().unwrap();
         proto_op.address = heap_op.address as i64;
         proto_op.size = Some(heap_op.layout.size() as i64);
-        proto_op.thread_id = 0;
+        proto_op.thread_id = heap_op.thread_id;
         proto_op.kind = ::protobuf::EnumOrUnknown::new(match heap_op.kind {
             HeapOperationKind::Alloc => generated::message::heap_operation::Kind::ALLOC,
             HeapOperationKind::Dealloc => generated::message::heap_operation::Kind::DEALLOC,
         });
-        proto_op.backtrace = heap_op.backtrace;
+        if store_backtrace {
+            proto_op.backtrace = heap_op.backtrace;
+        }
 
         proto_op
     }
@@ -162,6 +162,7 @@ impl Server {
         self.update.heap_operations.push(Self::create_proto_heap_op(
             duration_since_server_start,
             heap_op,
+            self.settings.store_backtrace,
         ));
 
         if self.update.heap_operations.iter().count()

@@ -109,6 +109,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gettid"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96d9ea5ee7dc59a2244fa486d8f00472f8d3e4c8c5f7f24a8551559ef3f3530e"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "gimli"
 version = "0.32.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -125,6 +134,7 @@ name = "heap-tracker-server"
 version = "0.1.0"
 dependencies = [
  "backtrace",
+ "gettid",
  "protobuf",
  "protobuf-codegen",
  "protoc-bin-vendored",
