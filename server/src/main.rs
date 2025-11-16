@@ -33,6 +33,7 @@ pub struct HeapOperation {
 pub enum ServerMessage {
     HeapOp(HeapOperation),
     Marker(&'static str),
+    Terminate,
 }
 
 pub struct Server {
@@ -44,6 +45,7 @@ pub struct Server {
     receiver: Receiver<ServerMessage>,
     num_heap_operations_sent: usize,
     start_time: SystemTime,
+    terminate: bool,
 }
 
 pub enum NetworkError {
@@ -85,6 +87,7 @@ impl Server {
                     receiver,
                     num_heap_operations_sent: 0,
                     start_time: server_start_time,
+                    terminate: false,
                 })
             }
             Err(e) => Err(e),
@@ -170,12 +173,13 @@ impl Server {
         match message {
             ServerMessage::HeapOp(heap_op) => self.push_heap_op(heap_op),
             ServerMessage::Marker(name) => self.push_marker(name),
+            ServerMessage::Terminate => self.terminate = true,
         }
     }
 
-    fn run(&mut self, terminate_receiver: Receiver<()>) {
-        while terminate_receiver.try_recv().is_err() {
-            match self.receiver.recv_timeout(Duration::from_millis(50)) {
+    fn run(&mut self) {
+        while !self.terminate {
+            match self.receiver.recv() {
                 Ok(server_message) => {
                     self.process(server_message);
                 }
@@ -185,7 +189,7 @@ impl Server {
     }
 }
 
-pub fn run_server(terminate_receiver: Receiver<()>) -> Result<JoinHandle<()>, std::io::Error> {
+pub fn run_server() -> Result<JoinHandle<()>, std::io::Error> {
     let (connection_sender, connection_receiver) = channel();
 
     let server_thread_id = thread::Builder::new()
@@ -199,7 +203,7 @@ pub fn run_server(terminate_receiver: Receiver<()>) -> Result<JoinHandle<()>, st
                     connection_sender
                         .send(())
                         .expect("Could not send connection established message");
-                    server.run(terminate_receiver);
+                    server.run();
                     SERVER.store(std::ptr::null_mut(), Ordering::Release);
                 }
                 Err(_) => {
@@ -269,15 +273,23 @@ unsafe impl GlobalAlloc for TrackedAllocator {
     }
 }
 
-fn send_marker(name: &'static str) {
+fn send_server_message(message: ServerMessage) {
     let server_ptr = SERVER.load(Ordering::Acquire);
     if server_ptr.is_null() {
         return;
     }
 
     unsafe {
-        (*server_ptr).send(ServerMessage::Marker(name));
+        (*server_ptr).send(message);
     }
+}
+
+fn send_terminate() {
+    send_server_message(ServerMessage::Terminate);
+}
+
+fn send_marker(name: &'static str) {
+    send_server_message(ServerMessage::Marker(name));
 }
 
 impl TrackedAllocator {
@@ -309,9 +321,7 @@ static mut GLOBAL_ALLOCATOR: TrackedAllocator = TrackedAllocator {};
 fn main() {
     println!("Heap tracker by Arjan Janssen");
 
-    let (terminate_sender, terminate_receiver) = channel();
-    let server_thread = run_server(terminate_receiver);
-
+    let server_thread = run_server();
     send_marker("before");
 
     let mut growing_vec = vec![1, 2, 3];
@@ -322,9 +332,7 @@ fn main() {
     send_marker("after");
 
     println!("Sending terminate signal to server thread!");
-    terminate_sender
-        .send(())
-        .expect("Could not send terminate message to server thread");
+    send_terminate();
 
     let join_result = server_thread.unwrap().join();
     if join_result.is_err() {
