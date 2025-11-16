@@ -1,4 +1,3 @@
-
 use protobuf_codegen;
 
 fn main() {
@@ -13,6 +12,6 @@ fn main() {
         // Inputs must reside in some of include paths.
         .input("src/protos/message.proto")
         // Specify output directory relative to Cargo output directory.
-        .out_dir("src/generated")
+        .out_dir("src/server/generated")
         .run_from_script();
 }
