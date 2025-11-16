@@ -34,8 +34,31 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
     data class HeapOperation(val type: HeapOperationType,
                              val durationSinceServerStart: Duration,
                              val address: Long,
-                             val size: Long)
-    data class Marker(val operationSequenceNumber: Long, val name: String)
+                             val size: Long,
+                             val backtrace: String) {
+        companion object {
+            fun fromProtobuf(proto: heap_tracker.Message.HeapOperation) : HeapOperation {
+                val durationSinceServerStart = proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS);
+                val heapOperationType =
+                    when (proto.kind) {
+                        Message.HeapOperation.Kind.ALLOC ->
+                            HeapOperationType.Alloc
+                        else -> {
+                            HeapOperationType.Dealloc
+                        }
+                    }
+
+                return HeapOperation(heapOperationType, durationSinceServerStart, proto.address, proto.size, proto.backtrace)
+            }
+        }
+    }
+    data class Marker(val operationSequenceNumber: Long, val name: String) {
+        companion object {
+            fun fromProtobuf(proto: heap_tracker.Message.Marker) : Marker{
+                return Marker(proto.firstOperationSeqNo, proto.name);
+            }
+        }
+    }
 
     fun print() {
         println("${heapOperations.size} heap operations:")
@@ -64,25 +87,11 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
         }
 
         fun fromProtobuf(update: heap_tracker.Message.Update) : TrackedHeap {
-            val validProtoHeapOperations = update.heapOperationList.filter {
-                it.type != Message.Update.HeapOperation.Type.UNRECOGNIZED
+            val validProtoHeapOperations = update.heapOperationsList.filter {
+                it.kind != Message.HeapOperation.Kind.UNRECOGNIZED
             }
-            val heapOperations = validProtoHeapOperations.map {
-                val durationSinceServerStart = it.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS);
-                val heapOperationType =
-                    when (it.type) {
-                        Message.Update.HeapOperation.Type.ALLOC ->
-                            HeapOperationType.Alloc
-                        else -> {
-                            HeapOperationType.Dealloc
-                        }
-                    }
-                TrackedHeap.HeapOperation(heapOperationType, durationSinceServerStart, it.address, it.size)
-            }
-
-            val markers = update.markerList.map {
-                Marker(it.firstOperationSeqNo, it.name);
-            }
+            val heapOperations = validProtoHeapOperations.map(HeapOperation::fromProtobuf)
+            val markers = update.markersList.map(Marker::fromProtobuf)
 
             return TrackedHeap(heapOperations, markers)
         }

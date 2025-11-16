@@ -28,6 +28,7 @@ pub struct HeapOperation {
     layout: Layout,
     thread_id: ThreadId,
     kind: HeapOperationKind,
+    backtrace: String,
 }
 
 pub enum ServerMessage {
@@ -36,8 +37,13 @@ pub enum ServerMessage {
     Terminate,
 }
 
+pub struct Settings {
+    num_heap_operations_per_message: usize,
+    store_backtrace: bool,
+}
+
 pub struct Server {
-    max_heap_operations: usize,
+    settings: Settings,
     update: generated::message::Update,
     stream: TcpStream,
     server_thread_id: thread::ThreadId,
@@ -67,11 +73,13 @@ impl Drop for Server {
 }
 
 impl Server {
-    pub fn new(max_heap_operations: usize) -> Result<Server, NetworkError> {
+    pub fn new(settings: Settings) -> Result<Server, NetworkError> {
         let (sender, receiver) = mpsc::sync_channel::<ServerMessage>(1 as usize);
 
         let mut update = generated::message::Update::new();
-        update.heap_operations.reserve(max_heap_operations);
+        update
+            .heap_operations
+            .reserve(settings.num_heap_operations_per_message);
 
         match Self::establish_connection() {
             Ok(stream) => {
@@ -79,7 +87,7 @@ impl Server {
                 let server_start_time = SystemTime::now();
 
                 Ok(Self {
-                    max_heap_operations,
+                    settings,
                     update,
                     stream,
                     server_thread_id,
@@ -143,6 +151,7 @@ impl Server {
             HeapOperationKind::Alloc => generated::message::heap_operation::Kind::ALLOC,
             HeapOperationKind::Dealloc => generated::message::heap_operation::Kind::DEALLOC,
         });
+        proto_op.backtrace = heap_op.backtrace;
 
         proto_op
     }
@@ -156,7 +165,9 @@ impl Server {
             heap_op,
         ));
 
-        if self.update.heap_operations.iter().count() >= self.max_heap_operations {
+        if self.update.heap_operations.iter().count()
+            >= self.settings.num_heap_operations_per_message
+        {
             self.flush(false);
         }
     }
@@ -196,7 +207,10 @@ pub fn run_server() -> Result<JoinHandle<()>, std::io::Error> {
         .name("heap-tracker".to_string())
         .spawn(move || {
             println!("Server thread started!");
-            let server = Server::new(10);
+            let server = Server::new(Settings {
+                num_heap_operations_per_message: 64,
+                store_backtrace: true,
+            });
             match server {
                 Ok(mut server) => {
                     SERVER.store(&mut server, Ordering::Release);
@@ -305,11 +319,13 @@ impl TrackedAllocator {
         }
 
         unsafe {
+            let backtrace = backtrace::Backtrace::new();
             (*server_ptr).send(ServerMessage::HeapOp(HeapOperation {
                 address: ptr as usize,
                 layout: layout,
                 thread_id: thread::current().id(),
                 kind: kind,
+                backtrace: format!("{backtrace:?}"),
             }));
         }
     }

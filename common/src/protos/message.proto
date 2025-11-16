@@ -13,6 +13,7 @@ message HeapOperation {
     int64 address = 3;
     optional int64 size = 4;
     uint64 thread_id = 5;
+    string backtrace = 6;
 }
 
 message Marker {
