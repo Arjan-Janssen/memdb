@@ -24,7 +24,7 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
                 val durationSinceServerStart = proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS);
                 val heapOperationType =
                     when (proto.kind) {
-                        Message.HeapOperation.Kind.ALLOC ->
+                        Message.HeapOperation.Kind.Alloc ->
                             HeapOperationType.Alloc
                         else -> {
                             HeapOperationType.Dealloc

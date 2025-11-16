@@ -4,8 +4,8 @@ package heap_tracker;
 
 message HeapOperation {
     enum Kind {
-        ALLOC = 0;
-        DEALLOC = 1;
+        Alloc = 0;
+        Dealloc = 1;
     }
 
     Kind kind = 1;

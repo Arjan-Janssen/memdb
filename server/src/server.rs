@@ -145,8 +145,8 @@ impl Server {
         proto_op.size = Some(heap_op.layout.size() as i64);
         proto_op.thread_id = heap_op.thread_id;
         proto_op.kind = ::protobuf::EnumOrUnknown::new(match heap_op.kind {
-            HeapOperationKind::Alloc => generated::message::heap_operation::Kind::ALLOC,
-            HeapOperationKind::Dealloc => generated::message::heap_operation::Kind::DEALLOC,
+            HeapOperationKind::Alloc => generated::message::heap_operation::Kind::Alloc,
+            HeapOperationKind::Dealloc => generated::message::heap_operation::Kind::Dealloc,
         });
         if store_backtrace {
             proto_op.backtrace = heap_op.backtrace;
