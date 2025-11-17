@@ -32,13 +32,14 @@ protobuf {
 dependencies {
     implementation(libs.google.protobuf.kotlin)
     implementation(libs.jetbrains.kotlin.stdlib)
+    implementation(libs.jetbrains.kotlinx.cli)
 }
 
 kotlin {
     compilerOptions {
         apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2)
         languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2)
-        jvmTarget.set(JvmTarget.JVM_24)
+        jvmTarget.set(JvmTarget.JVM_21)
         allWarningsAsErrors = true
     }
 }

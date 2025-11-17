@@ -2,13 +2,14 @@
 kotlin-version = "2.2.20"
 protobuf-version = "4.32.1"
 protobuf-plugin-version = "0.9.5"
+kotlinx-version = "0.3.6"
 
 [libraries]
 google-protobuf-kotlin = { group = "com.google.protobuf",  name = "protobuf-kotlin", version.ref = "protobuf-version" }
 jetbrains-kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin-version" }
 google-protobuf-gradle-plugin = {group = "com.google.protobuf", name = "protobuf-gradle-plugin", version.ref = "protobuf-plugin-version"}
 jetbrains-kotlin-gradle-plugin = {group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin-version"}
-google-protobuf-protoc = {group = "com.google.protobuf", name = "protoc", version.ref = "protobuf-version" }
+jetbrains-kotlinx-cli = {group ="org.jetbrains.kotlinx", name = "kotlinx-cli", version.ref = "kotlinx-version" }
 
 [plugins]
 google-protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin-version" }
