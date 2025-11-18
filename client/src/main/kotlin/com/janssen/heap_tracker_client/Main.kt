@@ -31,21 +31,9 @@ fun findPosition(trackedHeap: TrackedHeap, markerOrIndex: String) : Long? {
         it.name == markerOrIndex
     }
     marker?.let {
-        return markerOrIndex.toLongOrNull();
+        return marker.operationSequenceNumber
     }
-    return null;
-}
-
-fun print(diff: Diff) {
-    println("Added:")
-    diff.added.forEach {
-        println(it)
-    }
-
-    println("Removed:")
-    diff.removed.forEach {
-        println(it)
-    }
+    return markerOrIndex.toLongOrNull();
 }
 
 fun parseDiffSpec(trackedHeap: TrackedHeap, diffSpec: String) : TrackedHeap.DiffSpec? {
@@ -57,12 +45,12 @@ fun parseDiffSpec(trackedHeap: TrackedHeap, diffSpec: String) : TrackedHeap.Diff
 
     val fromPosition = findPosition(trackedHeap, fromToSpec[0])
     if (fromPosition == null) {
-        println("Invalid from position in diff spec ${diffSpec}. Unable to compute diff")
+        println("Invalid from position in diff spec ${diffSpec}.")
         return null;
     }
     val toPosition = findPosition(trackedHeap, fromToSpec[1])
     if (toPosition == null) {
-        println("Invalid to position in diff spec ${diffSpec}. Unable to compute diff")
+        println("Invalid to position in diff spec ${diffSpec}.")
         return null;
     }
     return TrackedHeap.DiffSpec(trackedHeap, fromPosition!!, toPosition!!)
@@ -72,20 +60,12 @@ fun doDiff(trackedHeap: TrackedHeap, diffSpec : String) {
     val diffSpec = parseDiffSpec(trackedHeap, diffSpec)
     diffSpec?.let {
         val diff = Diff.compute(it)
-        print(diff)
+        println("diff from position ${diffSpec.from} to ${diffSpec.to}:\n${diff}")
     }
 }
 
 fun doSave(trackedHeap: TrackedHeap, filePath: String) {
     TrackedHeap.saveToFile(trackedHeap, filePath);
-}
-
-fun print(histogram: Histogram) {
-    println("Size:frequency histogram:")
-    histogram.frequencyMap.forEach {
-        val formattedSize = String.format("%10d", it.key);
-        println("${formattedSize}\t${it.value}")
-    }
 }
 
 fun runInteractiveMode() {
@@ -102,6 +82,7 @@ fun main(args: Array<String>) {
     val histogram by parser.option(ArgType.Boolean, shortName = "hist", fullName = "histogram", description = "Histogram").default(false)
     val interactive by parser.option(ArgType.Boolean, shortName = "i", fullName = "interactive", description = "Interactive mode").default(false)
     val diff by parser.option(ArgType.String, shortName = "d",fullName = "diff", description = "Diff between two positions in the tracked heap")
+    val backtrace by parser.option(ArgType.Int, shortName = "bt", fullName = "backtrace", description = "Shows a back trace for heap alloc with the specified sequence number")
     parser.parse(args)
 
     var trackedHeap : TrackedHeap? = null
@@ -120,7 +101,7 @@ fun main(args: Array<String>) {
         histogram?.let {
             println("Histogram heap trace from $it")
             val histogram = Histogram.build(trackedHeap)
-            print(histogram)
+            print(histogram.toString())
         }
 
         save?.let {
@@ -130,6 +111,12 @@ fun main(args: Array<String>) {
 
         diff?.let {
             doDiff(trackedHeap,it)
+        }
+
+        backtrace?.let {
+            if (it >= 0 && it < trackedHeap.heapOperations.size) {
+                println("Backtrace:\n${trackedHeap.heapOperations[it].backtrace}")
+            }
         }
     }
 

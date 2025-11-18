@@ -3,7 +3,16 @@ package com.janssen.heap_tracker_client
 import java.util.TreeMap
 
 data class Histogram(val frequencyMap: Map<Long, Int>) {
-
+    override fun toString(): String {
+        val builder =
+            StringBuilder()
+                .appendLine("Histogram (alloc size:frequency):")
+        frequencyMap.forEach {
+            val formattedSize = String.format("%10d", it.key);
+            builder.appendLine("${formattedSize}\t${it.value}")
+        }
+        return builder.toString()
+    }
     companion object {
         fun build(trackedHeap: TrackedHeap) : Histogram {
             val map = trackedHeap.heapOperations.filter { it.kind == TrackedHeap.HeapOperationKind.Alloc }.groupingBy { it.size }.eachCount()

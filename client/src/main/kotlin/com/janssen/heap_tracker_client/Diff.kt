@@ -1,6 +1,19 @@
 package com.janssen.heap_tracker_client
 
-data class Diff(val added: List<TrackedHeap.HeapOperation>, val removed: List<TrackedHeap.HeapOperation>) {
+data class Diff(val added: List<TrackedHeap.HeapOperation>, val removed: List<TrackedHeap.HeapOperation>)  {
+    override fun toString() : String {
+        val builder = StringBuilder()
+        builder.appendLine("Added:")
+        added.forEach {
+            builder.appendLine(it.toString())
+        }
+
+        builder.appendLine("Removed:\n")
+        removed.forEach {
+            builder.appendLine(it.toString())
+        }
+        return builder.toString();
+    }
 
     companion object {
         fun removeAllocation(added: MutableSet<TrackedHeap.HeapOperation>, removed: MutableSet<TrackedHeap.HeapOperation>, dealloc: TrackedHeap.HeapOperation)

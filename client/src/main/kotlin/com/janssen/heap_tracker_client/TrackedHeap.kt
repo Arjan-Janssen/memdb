@@ -14,14 +14,30 @@ data class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : L
     }
 
     data class DiffSpec(val trackedHeap: TrackedHeap, val from: Long, val to: Long)
-    data class HeapOperation(val kind: HeapOperationKind,
+    data class HeapOperation(val seqNo: Long,
+                             val kind: HeapOperationKind,
                              val durationSinceServerStart: Duration,
                              val address: Long,
                              val size: Long,
                              val thread_id: Long,
                              val backtrace: String) {
+        override fun toString(): String {
+            return StringBuilder()
+                .appendLine("heap operation[")
+                .appendLine("seq no: $seqNo")
+                .appendLine("kind: $kind")
+                .appendLine("duration: $durationSinceServerStart")
+                .appendLine("address: $address")
+                .appendLine("size:  $size")
+                .appendLine("thread id: $thread_id")
+                .appendLine("backtrace: [not shown]")
+                .appendLine("]")
+                .toString()
+        }
+
+
         companion object {
-            fun fromProtobuf(proto: heap_tracker.Message.HeapOperation) : HeapOperation {
+            fun fromProtobuf(seqNo: Long, proto: heap_tracker.Message.HeapOperation) : HeapOperation {
                 val durationSinceServerStart = proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS);
                 val heapOperationType =
                     when (proto.kind) {
@@ -32,7 +48,7 @@ data class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : L
                         }
                     }
 
-                return HeapOperation(heapOperationType, durationSinceServerStart, proto.address, proto.size, proto.threadId, proto.backtrace)
+                return HeapOperation(seqNo, heapOperationType, durationSinceServerStart, proto.address, proto.size, proto.threadId, proto.backtrace)
             }
 
             fun toProtobuf(heapOperation: HeapOperation) : heap_tracker.Message.HeapOperation {
@@ -101,7 +117,9 @@ data class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : L
             val validProtoHeapOperations = update.heapOperationsList.filter {
                 it.kind != Message.HeapOperation.Kind.UNRECOGNIZED
             }
-            val heapOperations = validProtoHeapOperations.map(HeapOperation::fromProtobuf)
+            val heapOperations = validProtoHeapOperations.mapIndexed { seqNo, heapOperation ->
+                HeapOperation.fromProtobuf(seqNo.toLong(), heapOperation)
+            }
             val markers = update.markersList.map(Marker::fromProtobuf)
 
             return TrackedHeap(heapOperations, markers)
