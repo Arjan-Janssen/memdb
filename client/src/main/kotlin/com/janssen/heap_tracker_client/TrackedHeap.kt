@@ -12,6 +12,8 @@ data class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : L
         Alloc,
         Dealloc,
     }
+
+    data class DiffSpec(val trackedHeap: TrackedHeap, val from: Long, val to: Long)
     data class HeapOperation(val kind: HeapOperationKind,
                              val durationSinceServerStart: Duration,
                              val address: Long,

@@ -26,8 +26,54 @@ fun doCapture(connectionString : String) : TrackedHeap? {
     return null
 }
 
-fun doDiff(diffSpec : String) : TrackedHeap? {
+fun findPosition(trackedHeap: TrackedHeap, markerOrIndex: String) : Long? {
+    val marker = trackedHeap.markers.find {
+        it.name == markerOrIndex
+    }
+    marker?.let {
+        return markerOrIndex.toLongOrNull();
+    }
+    return null;
+}
 
+fun print(diff: Diff) {
+    println("Added:")
+    diff.added.forEach {
+        println(it)
+    }
+
+    println("Removed:")
+    diff.removed.forEach {
+        println(it)
+    }
+}
+
+fun parseDiffSpec(trackedHeap: TrackedHeap, diffSpec: String) : TrackedHeap.DiffSpec? {
+    val fromToSpec = diffSpec.split("..");
+    if (fromToSpec.size != 2) {
+        println("Invalid diff spec ${diffSpec}. Expected format [from]..[to]")
+        return null;
+    }
+
+    val fromPosition = findPosition(trackedHeap, fromToSpec[0])
+    if (fromPosition == null) {
+        println("Invalid from position in diff spec ${diffSpec}. Unable to compute diff")
+        return null;
+    }
+    val toPosition = findPosition(trackedHeap, fromToSpec[1])
+    if (toPosition == null) {
+        println("Invalid to position in diff spec ${diffSpec}. Unable to compute diff")
+        return null;
+    }
+    return TrackedHeap.DiffSpec(trackedHeap, fromPosition!!, toPosition!!)
+}
+
+fun doDiff(trackedHeap: TrackedHeap, diffSpec : String) {
+    val diffSpec = parseDiffSpec(trackedHeap, diffSpec)
+    diffSpec?.let {
+        val diff = Diff.compute(it)
+        print(diff)
+    }
 }
 
 fun doSave(trackedHeap: TrackedHeap, filePath: String) {
@@ -83,7 +129,7 @@ fun main(args: Array<String>) {
         }
 
         diff?.let {
-            diff = doDiff(it)
+            doDiff(trackedHeap,it)
         }
     }
 
