@@ -1,19 +1,18 @@
 package com.janssen.heap_tracker_client
 
 import heap_tracker.Message
+import java.io.File
+import java.io.FileInputStream
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<Marker>) {
-    inner class Diff(val fromInclusive: Long, val toExclusive: Long) {
-    }
-
-    enum class HeapOperationType {
+data class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<Marker>) {
+    enum class HeapOperationKind {
         Alloc,
         Dealloc,
     }
-    data class HeapOperation(val type: HeapOperationType,
+    data class HeapOperation(val kind: HeapOperationKind,
                              val durationSinceServerStart: Duration,
                              val address: Long,
                              val size: Long,
@@ -25,13 +24,27 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
                 val heapOperationType =
                     when (proto.kind) {
                         Message.HeapOperation.Kind.Alloc ->
-                            HeapOperationType.Alloc
+                            HeapOperationKind.Alloc
                         else -> {
-                            HeapOperationType.Dealloc
+                            HeapOperationKind.Dealloc
                         }
                     }
 
                 return HeapOperation(heapOperationType, durationSinceServerStart, proto.address, proto.size, proto.threadId, proto.backtrace)
+            }
+
+            fun toProtobuf(heapOperation: HeapOperation) : heap_tracker.Message.HeapOperation {
+                return heap_tracker.Message.HeapOperation.newBuilder()
+                        .setKind(when (heapOperation.kind) {
+                            HeapOperationKind.Alloc -> heap_tracker.Message.HeapOperation.Kind.Alloc
+                            else -> heap_tracker.Message.HeapOperation.Kind.Dealloc
+                        })
+                        .setMicrosSinceServerStart(heapOperation.durationSinceServerStart.inWholeMicroseconds)
+                        .setAddress(heapOperation.address)
+                        .setSize(heapOperation.size)
+                        .setThreadId(heapOperation.thread_id)
+                        .setBacktrace(heapOperation.backtrace)
+                        .build()
             }
         }
     }
@@ -39,6 +52,13 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
         companion object {
             fun fromProtobuf(proto: heap_tracker.Message.Marker) : Marker{
                 return Marker(proto.firstOperationSeqNo, proto.name);
+            }
+
+            fun toProtobuf(marker: Marker) : heap_tracker.Message.Marker {
+                return heap_tracker.Message.Marker.newBuilder()
+                    .setName(marker.name)
+                    .setFirstOperationSeqNo(marker.operationSequenceNumber)
+                    .build()
             }
         }
     }
@@ -48,7 +68,7 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
         var cumulativeSize = 0L
         heapOperations.forEach {
             println("${it}")
-            cumulativeSize += if (it.type == HeapOperationType.Alloc) it.size else -it.size;
+            cumulativeSize += if (it.kind == HeapOperationKind.Alloc) it.size else -it.size;
             println("cumulative size: $cumulativeSize")
         }
 
@@ -69,6 +89,12 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
             return TrackedHeap(heapOperations, markers)
         }
 
+        fun loadFromFile(filePath : String) : TrackedHeap {
+            val inputStream = File(filePath).inputStream()
+            val proto = heap_tracker.Message.Update.parseFrom(inputStream)
+            return fromProtobuf(proto);
+        }
+
         fun fromProtobuf(update: heap_tracker.Message.Update) : TrackedHeap {
             val validProtoHeapOperations = update.heapOperationsList.filter {
                 it.kind != Message.HeapOperation.Kind.UNRECOGNIZED
@@ -77,6 +103,25 @@ class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<M
             val markers = update.markersList.map(Marker::fromProtobuf)
 
             return TrackedHeap(heapOperations, markers)
+        }
+
+        fun saveToFile(trackedHeap: TrackedHeap, filePath : String) {
+            val outputStream = File(filePath).outputStream()
+            TrackedHeap.toProtobuf(trackedHeap).writeTo(outputStream)
+        }
+
+        fun toProtobuf(trackedHeap: TrackedHeap) : heap_tracker.Message.Update {
+            val builder = heap_tracker.Message.Update.newBuilder()
+
+            trackedHeap.heapOperations.forEach {
+                builder.addHeapOperations(HeapOperation.toProtobuf(it))
+            }
+
+            trackedHeap.markers.forEach {
+                builder.addMarkers(Marker.toProtobuf(it))
+            }
+
+            return builder.build()
         }
     }
 }

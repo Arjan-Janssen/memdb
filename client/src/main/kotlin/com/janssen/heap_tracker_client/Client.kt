@@ -1,25 +1,18 @@
 package com.janssen.heap_tracker_client
 
 import java.lang.Thread.sleep
-import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.Socket
 
 class Client {
-    constructor() {
-        val socketAddress = InetSocketAddress("localhost", 8989)
+    fun load(filePath : String) : TrackedHeap {
+        return TrackedHeap.loadFromFile(filePath);
+    }
+
+    fun capture(hostName : String, port : Int) : TrackedHeap{
+        val socketAddress = InetSocketAddress(hostName, port)
         var socket = Socket()
-        try {
-            socket.connect(socketAddress)
-        }
-        catch (e: ConnectException) {
-            println("Unable to connect to heap-tracker server at address $socketAddress: ${e.message}")
-        }
-        catch (e: Exception) {
-            println("Exception: ${e.message}")
-            e.printStackTrace()
-            return
-        }
+        socket.connect(socketAddress)
 
         val trackedHeaps = mutableListOf<TrackedHeap>()
         while (!socket.isClosed) {
@@ -36,7 +29,6 @@ class Client {
             }
         }
 
-        val trackedHeap = TrackedHeap.concatenate(trackedHeaps);
-        trackedHeap.print()
+        return TrackedHeap.concatenate(trackedHeaps);
     }
 }
