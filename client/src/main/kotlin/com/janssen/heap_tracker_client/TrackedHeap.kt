@@ -7,13 +7,14 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-data class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : List<Marker>) {
+data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: List<Marker>) {
     enum class HeapOperationKind {
         Alloc,
         Dealloc,
     }
 
     data class DiffSpec(val trackedHeap: TrackedHeap, val from: Long, val to: Long)
+
     data class HeapOperation(val seqNo: Long,
                              val kind: HeapOperationKind,
                              val durationSinceServerStart: Duration,
@@ -35,9 +36,8 @@ data class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : L
                 .toString()
         }
 
-
         companion object {
-            fun fromProtobuf(seqNo: Long, proto: heap_tracker.Message.HeapOperation) : HeapOperation {
+            fun fromProtobuf(seqNo: Long, proto: heap_tracker.Message.HeapOperation): HeapOperation {
                 val durationSinceServerStart = proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS);
                 val heapOperationType =
                     when (proto.kind) {
@@ -51,7 +51,7 @@ data class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : L
                 return HeapOperation(seqNo, heapOperationType, durationSinceServerStart, proto.address, proto.size, proto.threadId, proto.backtrace)
             }
 
-            fun toProtobuf(heapOperation: HeapOperation) : heap_tracker.Message.HeapOperation {
+            fun toProtobuf(heapOperation: HeapOperation): heap_tracker.Message.HeapOperation {
                 return heap_tracker.Message.HeapOperation.newBuilder()
                         .setKind(when (heapOperation.kind) {
                             HeapOperationKind.Alloc -> heap_tracker.Message.HeapOperation.Kind.Alloc
@@ -66,6 +66,7 @@ data class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : L
             }
         }
     }
+
     data class Marker(val operationSequenceNumber: Long, val name: String) {
         companion object {
             fun fromProtobuf(proto: heap_tracker.Message.Marker) : Marker{
@@ -81,19 +82,53 @@ data class TrackedHeap(val heapOperations : List<HeapOperation>, val markers : L
         }
     }
 
-    fun print() {
-        println("${heapOperations.size} heap operations:")
+    override fun toString(): String {
+        var builder = StringBuilder().
+            appendLine("tracked heap:")
+
         var cumulativeSize = 0L
         heapOperations.forEach {
-            println("${it}")
+            builder.appendLine("${it}")
             cumulativeSize += if (it.kind == HeapOperationKind.Alloc) it.size else -it.size;
-            println("cumulative size: $cumulativeSize")
+            builder.appendLine("cumulative size: $cumulativeSize")
         }
 
-        println("Markers:")
+        println("markers:")
         markers.forEach {
-            println("${it}")
+            builder.appendLine("${it}")
         }
+        return builder.toString()
+    }
+
+    fun toGraph(maxSymbolsPerLine: Int, maxLines: Int, symbol: Char): String {
+        val heapSizes = mutableListOf<Long>()
+        var currentHeapSize = 0L;
+        heapOperations.forEach {
+            currentHeapSize += if (it.kind == HeapOperationKind.Alloc) it.size else -it.size
+            heapSizes.addLast(currentHeapSize)
+        }
+        var maxHeapSize = 0L
+        heapSizes.forEach {
+            if (it > maxHeapSize) {
+                maxHeapSize = it
+            }
+        }
+
+        val builder = StringBuilder()
+            .appendLine("Graph: ")
+
+        val operationsPerLine  = if (heapOperations.size <= maxLines) 1 else Math.ceil(heapOperations.size / maxLines.toDouble()).toInt()
+        for (i in 0..heapOperations.size-1 step operationsPerLine) {
+            val numSymbols = (heapSizes[i] * maxSymbolsPerLine) / maxHeapSize
+            builder.append(String.format("%10d: ", i))
+            for (i in 0 until numSymbols) {
+                builder.append(symbol)
+            }
+            builder.appendLine()
+        }
+
+        builder.appendLine()
+        return builder.toString()
     }
 
     companion object {

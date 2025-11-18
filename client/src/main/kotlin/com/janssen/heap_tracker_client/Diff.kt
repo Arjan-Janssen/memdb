@@ -8,7 +8,7 @@ data class Diff(val added: List<TrackedHeap.HeapOperation>, val removed: List<Tr
             builder.appendLine(it.toString())
         }
 
-        builder.appendLine("Removed:\n")
+        builder.appendLine("Removed:")
         removed.forEach {
             builder.appendLine(it.toString())
         }
@@ -16,8 +16,7 @@ data class Diff(val added: List<TrackedHeap.HeapOperation>, val removed: List<Tr
     }
 
     companion object {
-        fun removeAllocation(added: MutableSet<TrackedHeap.HeapOperation>, removed: MutableSet<TrackedHeap.HeapOperation>, dealloc: TrackedHeap.HeapOperation)
-        {
+        fun removeAllocation(added: MutableSet<TrackedHeap.HeapOperation>, removed: MutableSet<TrackedHeap.HeapOperation>, dealloc: TrackedHeap.HeapOperation) {
             if (added.find {
                 it.address == dealloc.address;
             }?.also {

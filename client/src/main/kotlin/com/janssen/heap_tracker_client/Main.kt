@@ -83,6 +83,7 @@ fun main(args: Array<String>) {
     val interactive by parser.option(ArgType.Boolean, shortName = "i", fullName = "interactive", description = "Interactive mode").default(false)
     val diff by parser.option(ArgType.String, shortName = "d",fullName = "diff", description = "Diff between two positions in the tracked heap")
     val backtrace by parser.option(ArgType.Int, shortName = "bt", fullName = "backtrace", description = "Shows a back trace for heap alloc with the specified sequence number")
+    val plot by parser.option(ArgType.Boolean, shortName = "p", fullName = "plot", description = "Plot")
     parser.parse(args)
 
     var trackedHeap : TrackedHeap? = null
@@ -96,12 +97,20 @@ fun main(args: Array<String>) {
     }
 
     if (trackedHeap != null) {
-        trackedHeap.print()
+        print(trackedHeap.toString())
+
+        plot?.let {
+            if (it) {
+                print(trackedHeap.toGraph(80, 20, '#'))
+            }
+        }
 
         histogram?.let {
-            println("Histogram heap trace from $it")
-            val histogram = Histogram.build(trackedHeap)
-            print(histogram.toString())
+            if (it) {
+                println("Histogram heap trace from $it")
+                val histogram = Histogram.build(trackedHeap)
+                print(histogram.toString())
+            }
         }
 
         save?.let {
