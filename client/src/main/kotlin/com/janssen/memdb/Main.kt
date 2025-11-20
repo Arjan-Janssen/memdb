@@ -104,6 +104,11 @@ fun doLayoutPlot(diff: Diff, columns: Int, rows: Int) {
     println(diff.plot(columns, rows))
 }
 
+fun doSave(trackedHeap: TrackedHeap, filePath: String) {
+    println("Saving tracked heap to $filePath...")
+    TrackedHeap.saveToFile(trackedHeap, filePath)
+}
+
 @OptIn(ExperimentalCli::class)
 class Plot: Subcommand("plot",
     "Plot tracked heap") {
@@ -220,8 +225,7 @@ fun main(args: Array<String>) {
     }
     exportHeap?.let { saveHeap ->
         save?.let { filePath ->
-            println("Saving tracked heap to $filePath...")
-            TrackedHeap.saveToFile(saveHeap, filePath)
+            doSave(saveHeap, filePath)
         }
     }
 }
