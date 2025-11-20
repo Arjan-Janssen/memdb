@@ -34,14 +34,11 @@ fun doLoad(filePath: String): TrackedHeap {
     return client.load(filePath)
 }
 
-fun doDiff(trackedHeap: TrackedHeap, specStr : String) : Diff? {
+fun doDiff(trackedHeap: TrackedHeap, specStr : String) : Diff {
     val diffSpec = TrackedHeap.DiffSpec.fromString(trackedHeap, specStr)
-    diffSpec?.let {
-        val diff = Diff.compute(it)
-        println("diff from position ${diffSpec.range.start} to ${diffSpec.range.endInclusive}:\n${diff}")
-        return diff
-    }
-    return null
+    val diff = Diff.compute(diffSpec)
+    println("diff from position ${diffSpec.range.start} to ${diffSpec.range.endInclusive}:\n${diff}")
+    return diff
 }
 
 fun doPlot(trackedHeap: TrackedHeap,
@@ -51,16 +48,14 @@ fun doPlot(trackedHeap: TrackedHeap,
     val rangeSpec: TrackedHeap.DiffSpec = rangeSpec?.let {
         TrackedHeap.DiffSpec.fromString(trackedHeap, it)
     } ?: TrackedHeap.DiffSpec(trackedHeap, IntRange(0, trackedHeap.heapOperations.size - 1))
-    print(rangeSpec.trackedHeap.toGraph(rangeSpec.range, columns, rows, '#'))
+    println("Plot:")
+    println(rangeSpec.trackedHeap.toGraph(rangeSpec.range, columns, rows, '#'))
 }
 
-fun doTruncate(trackedHeap: TrackedHeap, rangeSpec: String): TrackedHeap? {
+fun doTruncate(trackedHeap: TrackedHeap, rangeSpec: String): TrackedHeap {
     val diffSpec = TrackedHeap.DiffSpec.fromString(trackedHeap, rangeSpec)
-    diffSpec?.let {
-        println("Truncating heap to ${it}...")
-        return TrackedHeap.truncate(diffSpec)
-    }
-    return null
+    println("Truncating heap to ${diffSpec}...")
+    return TrackedHeap.truncate(diffSpec)
 }
 
 fun doBacktrace(trackedHeap: TrackedHeap, seqNo: Int) {
@@ -79,7 +74,7 @@ fun doHistogram(trackedHeap: TrackedHeap) {
 }
 
 fun doLayoutPlot(diff: Diff, columns: Int, rows: Int) {
-    println("Plot:")
+    println("Layout plot:")
     println(diff.plot(columns, rows))
 }
 
@@ -189,10 +184,9 @@ fun main(args: Array<String>) {
         doHistogram(trackedHeap)
     }
     diff?.let {
-        doDiff(trackedHeap,it)?.let {
-            if (plotLayout.enabled) {
-                doLayoutPlot(it, plotLayout.columns, plotLayout.rows)
-            }
+        val diffResult = doDiff(trackedHeap,it)
+        if (plotLayout.enabled) {
+            doLayoutPlot(diffResult, plotLayout.columns, plotLayout.rows)
         }
     }
     backtrace?.let {

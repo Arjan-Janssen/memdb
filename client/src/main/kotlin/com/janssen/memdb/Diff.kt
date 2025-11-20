@@ -22,8 +22,6 @@ data class Diff(val added: List<TrackedHeap.HeapOperation>,
 
     fun plot(columns: Int, rows: Int): String {
         val builder = StringBuilder()
-        builder.appendLine("Plot:")
-
         val addedByAddress = added.groupBy { it.address }.toSortedMap()
         val removedByAddress = removed.groupBy { it.address }.toSortedMap()
         val addedAndRemovedByAddress = (added + removed).groupBy {it.address}.toSortedMap()
