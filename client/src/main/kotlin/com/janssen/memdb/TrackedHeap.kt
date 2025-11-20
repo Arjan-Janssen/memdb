@@ -119,7 +119,7 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         return builder.toString()
     }
 
-    fun toGraph(range: IntRange, maxSymbolsPerLine: Int, maxLines: Int, symbol: Char): String {
+    fun toGraph(range: IntRange, rows: Int, columns: Int, symbol: Char): String {
         val heapSizes = mutableListOf<Int>()
         var currentHeapSize = 0
         heapOperations.forEach {
@@ -137,10 +137,10 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
             .appendLine("Graph: ")
 
         val numOperations = (range.endInclusive - range.start).toInt()
-        val operationsPerLine = if (numOperations  <= maxLines) 1
-                                else Math.ceil(numOperations  / maxLines.toDouble()).toInt()
+        val operationsPerLine = if (numOperations  <= rows) 1
+                                else Math.ceil(numOperations  / rows.toDouble()).toInt()
         for (i in range step operationsPerLine) {
-            val numSymbols = (heapSizes[i] * maxSymbolsPerLine) / maxHeapSize
+            val numSymbols = (heapSizes[i] * columns) / maxHeapSize
             builder.append(String.format(Locale.getDefault(), "%10d: ", i))
             for (i in 0 until numSymbols) {
                 builder.append(symbol)

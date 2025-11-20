@@ -28,6 +28,12 @@ fun doCapture(connectionString: String): TrackedHeap? {
     return null
 }
 
+fun doLoad(filePath: String): TrackedHeap {
+    println("Loading tracked heap from $filePath...")
+    val client = Client()
+    return client.load(filePath)
+}
+
 fun parseDiffSpec(trackedHeap: TrackedHeap, diffSpec: String) : TrackedHeap.DiffSpec? {
     val fromToSpec = diffSpec.split("..")
     if (fromToSpec.size != 2) {
@@ -57,6 +63,45 @@ fun doDiff(trackedHeap: TrackedHeap, diffSpec : String) : Diff? {
         return diff
     }
     return null
+}
+
+fun doPlot(trackedHeap: TrackedHeap,
+           rangeSpec: String?,
+           columns: Int,
+           rows: Int) {
+    val rangeSpec: TrackedHeap.DiffSpec = rangeSpec?.let {
+        parseDiffSpec(trackedHeap, it)
+    } ?: TrackedHeap.DiffSpec(trackedHeap, IntRange(0, trackedHeap.heapOperations.size - 1))
+    print(rangeSpec.trackedHeap.toGraph(rangeSpec.range, columns, rows, '#'))
+}
+
+fun doTruncate(trackedHeap: TrackedHeap, rangeSpec: String): TrackedHeap? {
+    val diffSpec = parseDiffSpec(trackedHeap, rangeSpec)
+    diffSpec?.let {
+        println("Truncating heap to ${it}...")
+        return TrackedHeap.truncate(diffSpec)
+    }
+    return null
+}
+
+fun doBacktrace(trackedHeap: TrackedHeap, seqNo: Int) {
+    if (seqNo in 0..< trackedHeap.heapOperations.size) {
+        println("Backtrace:")
+        println(trackedHeap.heapOperations[seqNo].backtrace)
+    }
+    else {
+        println("Invalid seqNo: $seqNo. Tracked heap size: ${trackedHeap.heapOperations.size}")
+    }
+}
+
+fun doHistogram(trackedHeap: TrackedHeap) {
+    println("Histogram:")
+    println(Histogram.build(trackedHeap).toString())
+}
+
+fun doLayoutPlot(diff: Diff, columns: Int, rows: Int) {
+    println("Plot:")
+    println(diff.plot(columns, rows))
 }
 
 @OptIn(ExperimentalCli::class)
@@ -148,51 +193,31 @@ fun main(args: Array<String>) {
         trackedHeap = doCapture(it)
     }
     load?.let {
-        println("Loading tracked heap from $it...")
-        val client = Client()
-        trackedHeap = client.load(it)
+        trackedHeap = doLoad(it)
     }
-
     if (trackedHeap == null) {
         return;
     }
-
     if (plot.enabled) {
-        val diffSpec: TrackedHeap.DiffSpec = plot.range?.let {
-            parseDiffSpec(trackedHeap, it)
-        } ?: TrackedHeap.DiffSpec(trackedHeap, IntRange(0, trackedHeap.heapOperations.size - 1))
-        print(diffSpec.trackedHeap.toGraph(diffSpec.range, plot.columns, plot.rows, '#'))
+        doPlot(trackedHeap, plot.range, plot.columns, plot.rows)
     }
-
     if (histogram) {
-        val histogram = Histogram.build(trackedHeap)
-        print(histogram.toString())
+        doHistogram(trackedHeap)
     }
-
     diff?.let {
         doDiff(trackedHeap,it)?.let {
             if (plotLayout.enabled) {
-                println("Plotting...")
-                print(it.plot(plotLayout.columns, plotLayout.rows))
+                doLayoutPlot(it, plotLayout.columns, plotLayout.rows)
             }
         }
     }
-
     backtrace?.let {
-        if (it >= 0 && it < trackedHeap.heapOperations.size) {
-            println("Backtrace:\n${trackedHeap.heapOperations[it].backtrace}")
-        }
+        doBacktrace(trackedHeap, it)
     }
-
     var exportHeap = trackedHeap
     truncate?.let {
-        val diffSpec = parseDiffSpec(trackedHeap, it)
-        diffSpec?.let {
-            println("Truncating heap to ${it}...")
-            exportHeap = TrackedHeap.truncate(diffSpec)
-        }
+        exportHeap = doTruncate(trackedHeap, it);
     }
-
     exportHeap?.let { saveHeap ->
         save?.let { filePath ->
             println("Saving tracked heap to $filePath...")
