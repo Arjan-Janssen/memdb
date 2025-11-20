@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     kotlin("jvm") version ("2.2.20")
     alias(libs.plugins.google.protobuf)
+    alias(libs.plugins.arturbosch.detekt)
 }
 
 repositories {
