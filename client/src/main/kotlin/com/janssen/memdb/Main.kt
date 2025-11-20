@@ -34,29 +34,8 @@ fun doLoad(filePath: String): TrackedHeap {
     return client.load(filePath)
 }
 
-fun parseDiffSpec(trackedHeap: TrackedHeap, diffSpec: String) : TrackedHeap.DiffSpec? {
-    val fromToSpec = diffSpec.split("..")
-    if (fromToSpec.size != 2) {
-        println("Invalid diff spec ${diffSpec}. Expected format [from]..[to]")
-        return null
-    }
-
-    val fromPosition = trackedHeap.markerPosition(fromToSpec[0])
-    if (fromPosition == null) {
-        println("Invalid from position in diff spec ${diffSpec}.")
-        return null
-    }
-    val toPositionExclusive = trackedHeap.markerPosition(fromToSpec[1])
-    if (toPositionExclusive == null) {
-        println("Invalid to position in diff spec ${diffSpec}.")
-        return null
-    }
-    val range = IntRange(fromPosition!!, (toPositionExclusive!!) - 1)
-    return TrackedHeap.DiffSpec(trackedHeap, range)
-}
-
-fun doDiff(trackedHeap: TrackedHeap, diffSpec : String) : Diff? {
-    val diffSpec = parseDiffSpec(trackedHeap, diffSpec)
+fun doDiff(trackedHeap: TrackedHeap, specStr : String) : Diff? {
+    val diffSpec = TrackedHeap.DiffSpec.fromString(trackedHeap, specStr)
     diffSpec?.let {
         val diff = Diff.compute(it)
         println("diff from position ${diffSpec.range.start} to ${diffSpec.range.endInclusive}:\n${diff}")
@@ -70,13 +49,13 @@ fun doPlot(trackedHeap: TrackedHeap,
            columns: Int,
            rows: Int) {
     val rangeSpec: TrackedHeap.DiffSpec = rangeSpec?.let {
-        parseDiffSpec(trackedHeap, it)
+        TrackedHeap.DiffSpec.fromString(trackedHeap, it)
     } ?: TrackedHeap.DiffSpec(trackedHeap, IntRange(0, trackedHeap.heapOperations.size - 1))
     print(rangeSpec.trackedHeap.toGraph(rangeSpec.range, columns, rows, '#'))
 }
 
 fun doTruncate(trackedHeap: TrackedHeap, rangeSpec: String): TrackedHeap? {
-    val diffSpec = parseDiffSpec(trackedHeap, rangeSpec)
+    val diffSpec = TrackedHeap.DiffSpec.fromString(trackedHeap, rangeSpec)
     diffSpec?.let {
         println("Truncating heap to ${it}...")
         return TrackedHeap.truncate(diffSpec)

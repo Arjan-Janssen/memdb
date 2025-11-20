@@ -2,7 +2,7 @@ package com.janssen.memdb
 
 import heap_tracker.Message
 import java.io.File
-import java.io.FileInputStream
+import java.text.ParseException
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
@@ -14,7 +14,26 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         Dealloc,
     }
 
-    data class DiffSpec(val trackedHeap: TrackedHeap, val range: IntRange)
+    data class DiffSpec(val trackedHeap: TrackedHeap, val range: IntRange) {
+        companion object {
+            fun fromString(trackedHeap: TrackedHeap, specStr: String): DiffSpec {
+                val fromToSpec = specStr.split("..")
+                if (fromToSpec.size != 2) {
+                    throw ParseException("Invalid diff spec ${specStr}. Expected format [from]..[to]", 0)
+                }
+                val fromPosition = trackedHeap.markerPosition(fromToSpec[0])
+                if (fromPosition == null) {
+                    throw ParseException("Invalid from position in diff spec ${specStr}.", 0)
+                }
+                val toPositionExclusive = trackedHeap.markerPosition(fromToSpec[1])
+                if (toPositionExclusive == null) {
+                    throw ParseException("Invalid to position in diff spec ${specStr}.", 1)
+                }
+                val range = IntRange(fromPosition!!, (toPositionExclusive!!) - 1)
+                return TrackedHeap.DiffSpec(trackedHeap, range)
+            }
+        }
+    }
 
     data class HeapOperation(val seqNo: Int,
                              val kind: HeapOperationKind,
