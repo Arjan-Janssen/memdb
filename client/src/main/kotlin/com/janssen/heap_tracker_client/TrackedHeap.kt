@@ -13,7 +13,7 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         Dealloc,
     }
 
-    data class DiffSpec(val trackedHeap: TrackedHeap, val from: Int, val to: Int)
+    data class DiffSpec(val trackedHeap: TrackedHeap, val range: IntRange)
 
     data class HeapOperation(val seqNo: Int,
                              val kind: HeapOperationKind,
@@ -28,7 +28,7 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
                 .appendLine("seq no: $seqNo")
                 .appendLine("kind: $kind")
                 .appendLine("duration: $durationSinceServerStart")
-                .appendLine("address: $address")
+                .appendLine(String.format("address: %s", address.toHexString()))
                 .appendLine("size:  $size")
                 .appendLine("thread id: $thread_id")
                 .appendLine("backtrace: [not shown]")
@@ -100,7 +100,7 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         return builder.toString()
     }
 
-    fun toGraph(fromPosition: Int, toPosition: Int, maxSymbolsPerLine: Int, maxLines: Int, symbol: Char): String {
+    fun toGraph(range: IntRange, maxSymbolsPerLine: Int, maxLines: Int, symbol: Char): String {
         val heapSizes = mutableListOf<Int>()
         var currentHeapSize = 0
         heapOperations.forEach {
@@ -117,9 +117,9 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         val builder = StringBuilder()
             .appendLine("Graph: ")
 
-        val numOperations = (toPosition - fromPosition).toInt()
+        val numOperations = (range.endInclusive - range.start).toInt()
         val operationsPerLine  = if (numOperations  <= maxLines) 1 else Math.ceil(numOperations  / maxLines.toDouble()).toInt()
-        for (i in fromPosition.toInt() ..toPosition.toInt()-1 step operationsPerLine) {
+        for (i in range step operationsPerLine) {
             val numSymbols = (heapSizes[i] * maxSymbolsPerLine) / maxHeapSize
             builder.append(String.format("%10d: ", i))
             for (i in 0 until numSymbols) {
@@ -133,7 +133,7 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
     }
 
     companion object {
-        fun concatenate(trackedHeaps: List<TrackedHeap>) : TrackedHeap {
+        fun concatenate(trackedHeaps: List<TrackedHeap>): TrackedHeap {
             val heapOperations = mutableListOf<HeapOperation>()
             val markers = mutableListOf<Marker>()
             trackedHeaps.forEach {
@@ -141,6 +141,11 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
                 markers.addAll(it.markers);
             }
             return TrackedHeap(heapOperations, markers)
+        }
+
+        fun truncate(diffSpec: DiffSpec): TrackedHeap {
+            val trackedHeap = diffSpec.trackedHeap
+            return TrackedHeap(trackedHeap.heapOperations.slice(diffSpec.range), trackedHeap.markers)
         }
 
         fun loadFromFile(filePath : String) : TrackedHeap {

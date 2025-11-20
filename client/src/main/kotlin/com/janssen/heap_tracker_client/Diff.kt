@@ -21,7 +21,10 @@ data class Diff(val added: List<TrackedHeap.HeapOperation>, val removed: List<Tr
         return Math.ceil(value.toDouble() / multiple).toInt() * multiple
     }
 
-    fun inCell(alloc: TrackedHeap.HeapOperation, cellStartAddress:Int, cellEndAddress: Int): Boolean {
+    fun inCell(alloc: TrackedHeap.HeapOperation?, cellStartAddress:Int, cellEndAddress: Int): Boolean {
+        if (alloc == null) {
+            return false;
+        }
         val lastAllocEnd = alloc.address + alloc.size
         val startWithinCell = alloc.address in cellStartAddress..<cellEndAddress
         val endWithinCell = lastAllocEnd in cellStartAddress..<cellEndAddress
@@ -29,7 +32,10 @@ data class Diff(val added: List<TrackedHeap.HeapOperation>, val removed: List<Tr
         return startWithinCell || endWithinCell || rangeOverlapsCell;
     }
 
-    fun advanceItToCell(alloc: TrackedHeap.HeapOperation, allocIt: MutableIterator<MutableMap.MutableEntry<Int, List<TrackedHeap.HeapOperation>>>, cellStartAddress: Int, cellEndAddress: Int): TrackedHeap.HeapOperation {
+    fun advanceItToCell(alloc: TrackedHeap.HeapOperation?, allocIt: MutableIterator<MutableMap.MutableEntry<Int, List<TrackedHeap.HeapOperation>>>, cellStartAddress: Int, cellEndAddress: Int): TrackedHeap.HeapOperation? {
+        if (alloc == null) {
+            return null;
+        }
         var lastAlloc = alloc
         while ((alloc.address + alloc.size) < cellStartAddress &&
             allocIt.hasNext()) {
@@ -44,19 +50,21 @@ data class Diff(val added: List<TrackedHeap.HeapOperation>, val removed: List<Tr
 
         val addedByAddress = added.groupBy { it.address }.toSortedMap()
         val removedByAddress = removed.groupBy { it.address }.toSortedMap()
-        val minAddress = Math.min(added.first().address, removed.first().address)
-        val maxAddress = ceilToMultiple(Math.max(removed.last().address + removed.last().size,
-                                                added.last().address + added.last().size), rows * columns)
-        println("Address range: ${minAddress}...${maxAddress}")
+        val addedAndRemovedByAddress = (added + removed).groupBy {it.address}.toSortedMap()
+
+        val minAddress = addedAndRemovedByAddress.firstKey()
+        val maxAddress = ceilToMultiple(addedAndRemovedByAddress.lastKey() + addedAndRemovedByAddress.lastEntry().value.first().size,
+            rows * columns)
+        println("Address range: ${minAddress}..${maxAddress}")
 
         val addressRange = maxAddress - minAddress
         val addressRangePerRow = addressRange / rows
         val addressRangePerCell = addressRangePerRow / columns
 
         val addedAllocIt = addedByAddress.iterator()
-        var lastAddedAlloc = addedAllocIt.next().value.first()
+        var lastAddedAlloc = if (addedAllocIt.hasNext()) addedAllocIt.next().value.first() else null
         val removedAllocIt = removedByAddress.iterator()
-        var lastRemovedAlloc = removedAllocIt.next().value.first()
+        var lastRemovedAlloc = if (removedAllocIt.hasNext()) removedAllocIt.next().value.first() else null
         for (rowStartAddress in minAddress..maxAddress step addressRangePerRow) {
             builder.append("${rowStartAddress.toInt().toHexString()}: ")
             for (i in 0..columns - 1) {
@@ -67,11 +75,11 @@ data class Diff(val added: List<TrackedHeap.HeapOperation>, val removed: List<Tr
                 lastRemovedAlloc = advanceItToCell(lastRemovedAlloc, removedAllocIt, cellStartAddress, cellEndAddress)
 
                 if (inCell(lastAddedAlloc, cellStartAddress, cellEndAddress)) {
-                    builder.append(String.format("%${COLUMN_WIDTH}d", lastAddedAlloc.seqNo))
+                    builder.append(String.format("%${COLUMN_WIDTH}d", lastAddedAlloc?.seqNo))
                     builder.append('+')
                 }
                 else if (inCell(lastRemovedAlloc, cellStartAddress, cellEndAddress)) {
-                    builder.append(String.format("%${COLUMN_WIDTH}d", lastRemovedAlloc.seqNo))
+                    builder.append(String.format("%${COLUMN_WIDTH}d", lastRemovedAlloc?.seqNo))
                     builder.append('-')
                 }
                 else {
@@ -98,10 +106,12 @@ data class Diff(val added: List<TrackedHeap.HeapOperation>, val removed: List<Tr
                 removed.add(dealloc)
             }
         }
+
         fun compute(spec: TrackedHeap.DiffSpec) : Diff {
+            val diffHeap = TrackedHeap.truncate(spec)
             val added = mutableSetOf<TrackedHeap.HeapOperation>();
             val removed = mutableSetOf<TrackedHeap.HeapOperation>();
-            spec.trackedHeap.heapOperations.forEach {
+            diffHeap.heapOperations.forEach {
                 when (it.kind) {
                     TrackedHeap.HeapOperationKind.Alloc -> {
                         added.add(it)

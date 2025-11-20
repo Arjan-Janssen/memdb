@@ -51,19 +51,20 @@ fun parseDiffSpec(trackedHeap: TrackedHeap, diffSpec: String) : TrackedHeap.Diff
         println("Invalid from position in diff spec ${diffSpec}.")
         return null;
     }
-    val toPosition = findPosition(trackedHeap, fromToSpec[1])
-    if (toPosition == null) {
+    val toPositionExclusive = findPosition(trackedHeap, fromToSpec[1])
+    if (toPositionExclusive == null) {
         println("Invalid to position in diff spec ${diffSpec}.")
         return null;
     }
-    return TrackedHeap.DiffSpec(trackedHeap, fromPosition!!, toPosition!!)
+    val range = IntRange(fromPosition!!, toPositionExclusive!! - 1)
+    return TrackedHeap.DiffSpec(trackedHeap, range)
 }
 
 fun doDiff(trackedHeap: TrackedHeap, diffSpec : String) : Diff? {
     val diffSpec = parseDiffSpec(trackedHeap, diffSpec)
     diffSpec?.let {
         val diff = Diff.compute(it)
-        println("diff from position ${diffSpec.from} to ${diffSpec.to}:\n${diff}")
+        println("diff from position ${diffSpec.range.start} to ${diffSpec.range.endInclusive}:\n${diff}")
         return diff
     }
     return null
@@ -87,6 +88,7 @@ fun main(args: Array<String>) {
     val histogram by parser.option(ArgType.Boolean, shortName = "hist", fullName = "histogram", description = "Histogram").default(false)
     val interactive by parser.option(ArgType.Boolean, shortName = "i", fullName = "interactive", description = "Interactive mode").default(false)
     val diff by parser.option(ArgType.String, shortName = "d",fullName = "diff", description = "Diff between two positions in the tracked heap")
+    val truncate by parser.option(ArgType.String, shortName = "t", fullName = "truncate", description = "Truncate the tracked heap")
     val backtrace by parser.option(ArgType.Int, shortName = "bt", fullName = "backtrace", description = "Shows a back trace for heap alloc with the specified sequence number")
     class Plot: Subcommand("plot", "Plot tracked heap") {
         val columns by option(ArgType.Int, "columns", "col", "Columns in characters").default(DEFAULT_PLOT_COLUMNS)
@@ -125,35 +127,16 @@ fun main(args: Array<String>) {
     }
 
     if (trackedHeap != null) {
-        print(trackedHeap.toString())
-
         if (plot.enabled) {
-            var fromPosition = 0
-            var toPosition = trackedHeap.heapOperations.size
-            plot.range?.let {
-                val diffSpec = parseDiffSpec(trackedHeap, it)
-                diffSpec?.from?.let {
-                    fromPosition = it
-                }
-                diffSpec?.to?.let {
-                    toPosition = it
-                }
-            }
-            print(trackedHeap.toGraph(fromPosition, toPosition, plot.columns, plot.rows, '#'))
+            val diffSpec: TrackedHeap.DiffSpec = plot.range?.let {
+                parseDiffSpec(trackedHeap, it)
+            } ?: TrackedHeap.DiffSpec(trackedHeap, IntRange(0, trackedHeap.heapOperations.size - 1))
+            print(diffSpec.trackedHeap.toGraph(diffSpec.range, plot.columns, plot.rows, '#'))
         }
 
-
-        histogram?.let {
-            if (it) {
-                println("Histogram heap trace from $it")
-                val histogram = Histogram.build(trackedHeap)
-                print(histogram.toString())
-            }
-        }
-
-        save?.let {
-            println("Saving tracked heap to $it...")
-            TrackedHeap.saveToFile(trackedHeap, it)
+        if (histogram) {
+            val histogram = Histogram.build(trackedHeap)
+            print(histogram.toString())
         }
 
         diff?.let {
@@ -168,6 +151,22 @@ fun main(args: Array<String>) {
         backtrace?.let {
             if (it >= 0 && it < trackedHeap.heapOperations.size) {
                 println("Backtrace:\n${trackedHeap.heapOperations[it].backtrace}")
+            }
+        }
+
+        var exportHeap = trackedHeap
+        truncate?.let {
+            val diffSpec = parseDiffSpec(trackedHeap, it)
+            diffSpec?.let {
+                println("Truncating heap to ${it}...")
+                exportHeap = TrackedHeap.truncate(diffSpec)
+            }
+        }
+
+        exportHeap?.let { saveHeap ->
+            save?.let { filePath ->
+                println("Saving tracked heap to $filePath...")
+                TrackedHeap.saveToFile(saveHeap, filePath)
             }
         }
     }
