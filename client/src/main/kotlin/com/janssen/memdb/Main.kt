@@ -129,7 +129,7 @@ class PlotLayout : Subcommand("plot-layout",
 
 @OptIn(ExperimentalCli::class)
 fun main(args: Array<String>) {
-    println("Heap tracker (c) 2025 by Arjan Janssen")
+    println("memdb (c) 2025 by Arjan Janssen")
 
     val parser = ArgParser("heap-tracker")
     val capture by parser.option(ArgType.String,

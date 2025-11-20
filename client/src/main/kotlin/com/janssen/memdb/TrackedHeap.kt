@@ -110,6 +110,10 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         }
     }
 
+    fun marker(firstOperationSeqNo: Int): Marker? {
+        return markers.find{ it.firstOperationSeqNo == firstOperationSeqNo}
+    }
+
     fun markerPosition(markerOrIndex: String) : Int? {
         val marker = markers.find {
             it.name == markerOrIndex
@@ -138,7 +142,27 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         return builder.toString()
     }
 
-    fun toGraph(range: IntRange, rows: Int, columns: Int, symbol: Char): String {
+    fun plotHeading(columns: Int, maxHeapSize: Int): String {
+        val builder = StringBuilder()
+        builder.append(String.format(Locale.getDefault(), "%10s->", "allocated"))
+        for (i in 0 ..< columns) {
+            builder.append(' ')
+        }
+        builder.append("<-")
+        builder.append(maxHeapSize.toString());
+        return builder.toString()
+    }
+
+    fun plotMarkerLine(name: String, columns: Int): String {
+        val builder = StringBuilder()
+        builder.append(String.format(Locale.getDefault(), "%10s: ", name))
+        for (i in 0 ..< columns) {
+            builder.append('-')
+        }
+        return builder.toString()
+    }
+
+    fun toGraph(range: IntRange, columns: Int, rows: Int, symbol: Char): String {
         val heapSizes = mutableListOf<Int>()
         var currentHeapSize = 0
         heapOperations.forEach {
@@ -153,18 +177,24 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         }
 
         val builder = StringBuilder()
-            .appendLine("Graph: ")
 
+        builder.appendLine(plotHeading(columns, maxHeapSize))
         val numOperations = (range.endInclusive - range.start).toInt()
         val operationsPerLine = if (numOperations  <= rows) 1
                                 else Math.ceil(numOperations  / rows.toDouble()).toInt()
         for (i in range step operationsPerLine) {
+            marker(i)?.let {
+                builder.appendLine(plotMarkerLine(it.name, columns))
+            }
             val numSymbols = (heapSizes[i] * columns) / maxHeapSize
             builder.append(String.format(Locale.getDefault(), "%10d: ", i))
             for (i in 0 until numSymbols) {
                 builder.append(symbol)
             }
             builder.appendLine()
+        }
+        marker(range.endInclusive + 1)?.let {
+            builder.appendLine(plotMarkerLine(it.name, columns))
         }
 
         builder.appendLine()
