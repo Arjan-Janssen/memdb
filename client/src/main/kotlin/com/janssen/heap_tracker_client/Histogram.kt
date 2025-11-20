@@ -2,7 +2,7 @@ package com.janssen.heap_tracker_client
 
 import java.util.TreeMap
 
-data class Histogram(val frequencyMap: Map<Long, Int>) {
+data class Histogram(val frequencyMap: Map<Int, Int>) {
     override fun toString(): String {
         val builder =
             StringBuilder()

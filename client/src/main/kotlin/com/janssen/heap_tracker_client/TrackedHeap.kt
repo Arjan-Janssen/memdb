@@ -13,14 +13,14 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         Dealloc,
     }
 
-    data class DiffSpec(val trackedHeap: TrackedHeap, val from: Long, val to: Long)
+    data class DiffSpec(val trackedHeap: TrackedHeap, val from: Int, val to: Int)
 
-    data class HeapOperation(val seqNo: Long,
+    data class HeapOperation(val seqNo: Int,
                              val kind: HeapOperationKind,
                              val durationSinceServerStart: Duration,
-                             val address: Long,
-                             val size: Long,
-                             val thread_id: Long,
+                             val address: Int,
+                             val size: Int,
+                             val thread_id: Int,
                              val backtrace: String) {
         override fun toString(): String {
             return StringBuilder()
@@ -37,7 +37,7 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         }
 
         companion object {
-            fun fromProtobuf(seqNo: Long, proto: heap_tracker.Message.HeapOperation): HeapOperation {
+            fun fromProtobuf(seqNo: Int, proto: heap_tracker.Message.HeapOperation): HeapOperation {
                 val durationSinceServerStart = proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS);
                 val heapOperationType =
                     when (proto.kind) {
@@ -48,7 +48,7 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
                         }
                     }
 
-                return HeapOperation(seqNo, heapOperationType, durationSinceServerStart, proto.address, proto.size, proto.threadId, proto.backtrace)
+                return HeapOperation(seqNo, heapOperationType, durationSinceServerStart, proto.address.toInt(), proto.size.toInt(), proto.threadId.toInt(), proto.backtrace)
             }
 
             fun toProtobuf(heapOperation: HeapOperation): heap_tracker.Message.HeapOperation {
@@ -58,25 +58,25 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
                             else -> heap_tracker.Message.HeapOperation.Kind.Dealloc
                         })
                         .setMicrosSinceServerStart(heapOperation.durationSinceServerStart.inWholeMicroseconds)
-                        .setAddress(heapOperation.address)
-                        .setSize(heapOperation.size)
-                        .setThreadId(heapOperation.thread_id)
+                        .setAddress(heapOperation.address.toLong())
+                        .setSize(heapOperation.size.toLong())
+                        .setThreadId(heapOperation.thread_id.toLong())
                         .setBacktrace(heapOperation.backtrace)
                         .build()
             }
         }
     }
 
-    data class Marker(val operationSequenceNumber: Long, val name: String) {
+    data class Marker(val firstOperationSeqNo: Int, val name: String) {
         companion object {
             fun fromProtobuf(proto: heap_tracker.Message.Marker) : Marker{
-                return Marker(proto.firstOperationSeqNo, proto.name);
+                return Marker(proto.firstOperationSeqNo.toInt(), proto.name);
             }
 
             fun toProtobuf(marker: Marker) : heap_tracker.Message.Marker {
                 return heap_tracker.Message.Marker.newBuilder()
                     .setName(marker.name)
-                    .setFirstOperationSeqNo(marker.operationSequenceNumber)
+                    .setFirstOperationSeqNo(marker.firstOperationSeqNo.toLong())
                     .build()
             }
         }
@@ -86,7 +86,7 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         var builder = StringBuilder().
             appendLine("tracked heap:")
 
-        var cumulativeSize = 0L
+        var cumulativeSize = 0
         heapOperations.forEach {
             builder.appendLine("${it}")
             cumulativeSize += if (it.kind == HeapOperationKind.Alloc) it.size else -it.size;
@@ -100,14 +100,14 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         return builder.toString()
     }
 
-    fun toGraph(maxSymbolsPerLine: Int, maxLines: Int, symbol: Char): String {
-        val heapSizes = mutableListOf<Long>()
-        var currentHeapSize = 0L;
+    fun toGraph(fromPosition: Int, toPosition: Int, maxSymbolsPerLine: Int, maxLines: Int, symbol: Char): String {
+        val heapSizes = mutableListOf<Int>()
+        var currentHeapSize = 0
         heapOperations.forEach {
             currentHeapSize += if (it.kind == HeapOperationKind.Alloc) it.size else -it.size
             heapSizes.addLast(currentHeapSize)
         }
-        var maxHeapSize = 0L
+        var maxHeapSize = 0
         heapSizes.forEach {
             if (it > maxHeapSize) {
                 maxHeapSize = it
@@ -117,8 +117,9 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         val builder = StringBuilder()
             .appendLine("Graph: ")
 
-        val operationsPerLine  = if (heapOperations.size <= maxLines) 1 else Math.ceil(heapOperations.size / maxLines.toDouble()).toInt()
-        for (i in 0..heapOperations.size-1 step operationsPerLine) {
+        val numOperations = (toPosition - fromPosition).toInt()
+        val operationsPerLine  = if (numOperations  <= maxLines) 1 else Math.ceil(numOperations  / maxLines.toDouble()).toInt()
+        for (i in fromPosition.toInt() ..toPosition.toInt()-1 step operationsPerLine) {
             val numSymbols = (heapSizes[i] * maxSymbolsPerLine) / maxHeapSize
             builder.append(String.format("%10d: ", i))
             for (i in 0 until numSymbols) {
@@ -153,7 +154,7 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
                 it.kind != Message.HeapOperation.Kind.UNRECOGNIZED
             }
             val heapOperations = validProtoHeapOperations.mapIndexed { seqNo, heapOperation ->
-                HeapOperation.fromProtobuf(seqNo.toLong(), heapOperation)
+                HeapOperation.fromProtobuf(seqNo, heapOperation)
             }
             val markers = update.markersList.map(Marker::fromProtobuf)
 

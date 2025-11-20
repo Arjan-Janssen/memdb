@@ -2,8 +2,11 @@ package com.janssen.heap_tracker_client
 
 import java.net.ConnectException
 import kotlinx.cli.*
+import java.util.EnumSet.range
 
 val DEFAULT_CONNECTION_PORT = 8989
+val DEFAULT_PLOT_COLUMNS = 80
+val DEFAULT_PLOT_ROWS = 40
 
 fun doCapture(connectionString : String) : TrackedHeap? {
     val splitConnectionString = connectionString.split(":")
@@ -26,14 +29,14 @@ fun doCapture(connectionString : String) : TrackedHeap? {
     return null
 }
 
-fun findPosition(trackedHeap: TrackedHeap, markerOrIndex: String) : Long? {
+fun findPosition(trackedHeap: TrackedHeap, markerOrIndex: String) : Int? {
     val marker = trackedHeap.markers.find {
         it.name == markerOrIndex
     }
     marker?.let {
-        return marker.operationSequenceNumber
+        return marker.firstOperationSeqNo
     }
-    return markerOrIndex.toLongOrNull();
+    return markerOrIndex.toIntOrNull();
 }
 
 fun parseDiffSpec(trackedHeap: TrackedHeap, diffSpec: String) : TrackedHeap.DiffSpec? {
@@ -56,12 +59,14 @@ fun parseDiffSpec(trackedHeap: TrackedHeap, diffSpec: String) : TrackedHeap.Diff
     return TrackedHeap.DiffSpec(trackedHeap, fromPosition!!, toPosition!!)
 }
 
-fun doDiff(trackedHeap: TrackedHeap, diffSpec : String) {
+fun doDiff(trackedHeap: TrackedHeap, diffSpec : String) : Diff? {
     val diffSpec = parseDiffSpec(trackedHeap, diffSpec)
     diffSpec?.let {
         val diff = Diff.compute(it)
         println("diff from position ${diffSpec.from} to ${diffSpec.to}:\n${diff}")
+        return diff
     }
+    return null
 }
 
 fun doSave(trackedHeap: TrackedHeap, filePath: String) {
@@ -83,7 +88,30 @@ fun main(args: Array<String>) {
     val interactive by parser.option(ArgType.Boolean, shortName = "i", fullName = "interactive", description = "Interactive mode").default(false)
     val diff by parser.option(ArgType.String, shortName = "d",fullName = "diff", description = "Diff between two positions in the tracked heap")
     val backtrace by parser.option(ArgType.Int, shortName = "bt", fullName = "backtrace", description = "Shows a back trace for heap alloc with the specified sequence number")
-    val plot by parser.option(ArgType.Boolean, shortName = "p", fullName = "plot", description = "Plot")
+    class Plot: Subcommand("plot", "Plot tracked heap") {
+        val columns by option(ArgType.Int, "columns", "col", "Columns in characters").default(DEFAULT_PLOT_COLUMNS)
+        val rows by option(ArgType.Int, "rows", shortName = "row", description = "Rows in characters").default(
+            DEFAULT_PLOT_ROWS
+        )
+        val range by option(ArgType.String, "range", shortName = "r", description = "Limit plot to range")
+        var enabled = false
+        override fun execute() {
+            enabled = true
+        }
+    }
+    class PlotLayout : Subcommand("plot-layout", "Play memory layout") {
+        val columns by option(ArgType.Int, "columns", "col", "Columns in characters").default(DEFAULT_PLOT_COLUMNS)
+        val rows by option(ArgType.Int, "rows", shortName = "row", description = "Rows in characters").default(
+            DEFAULT_PLOT_ROWS
+        )
+        var enabled = false
+        override fun execute() {
+            enabled = true
+        }
+    }
+    val plot = Plot()
+    val plotLayout = PlotLayout()
+    parser.subcommands(plot, plotLayout)
     parser.parse(args)
 
     var trackedHeap : TrackedHeap? = null
@@ -99,11 +127,21 @@ fun main(args: Array<String>) {
     if (trackedHeap != null) {
         print(trackedHeap.toString())
 
-        plot?.let {
-            if (it) {
-                print(trackedHeap.toGraph(80, 20, '#'))
+        if (plot.enabled) {
+            var fromPosition = 0
+            var toPosition = trackedHeap.heapOperations.size
+            plot.range?.let {
+                val diffSpec = parseDiffSpec(trackedHeap, it)
+                diffSpec?.from?.let {
+                    fromPosition = it
+                }
+                diffSpec?.to?.let {
+                    toPosition = it
+                }
             }
+            print(trackedHeap.toGraph(fromPosition, toPosition, plot.columns, plot.rows, '#'))
         }
+
 
         histogram?.let {
             if (it) {
@@ -119,7 +157,12 @@ fun main(args: Array<String>) {
         }
 
         diff?.let {
-            doDiff(trackedHeap,it)
+            doDiff(trackedHeap,it)?.let {
+                if (plotLayout.enabled) {
+                    println("Plotting...")
+                    print(it.plot(plotLayout.columns, plotLayout.rows))
+                }
+            }
         }
 
         backtrace?.let {
