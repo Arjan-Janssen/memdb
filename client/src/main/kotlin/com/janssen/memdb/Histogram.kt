@@ -1,6 +1,7 @@
-package com.janssen.heap_tracker_client
+package com.janssen.memdb
 
 import java.util.TreeMap
+import java.util.Locale
 
 data class Histogram(val frequencyMap: Map<Int, Int>) {
     override fun toString(): String {
@@ -8,14 +9,16 @@ data class Histogram(val frequencyMap: Map<Int, Int>) {
             StringBuilder()
                 .appendLine("Histogram (alloc size:frequency):")
         frequencyMap.forEach {
-            val formattedSize = String.format("%10d", it.key);
+            val formattedSize = String.format(Locale.getDefault(), "%10d", it.key);
             builder.appendLine("${formattedSize}\t${it.value}")
         }
         return builder.toString()
     }
+
     companion object {
-        fun build(trackedHeap: TrackedHeap) : Histogram {
-            val map = trackedHeap.heapOperations.filter { it.kind == TrackedHeap.HeapOperationKind.Alloc }.groupingBy { it.size }.eachCount()
+        fun build(trackedHeap: TrackedHeap): Histogram {
+            val map = trackedHeap.heapOperations.filter { it.kind == TrackedHeap.HeapOperationKind.Alloc }
+                .groupingBy { it.size }.eachCount()
             return Histogram(TreeMap(map))
         }
     }

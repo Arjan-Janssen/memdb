@@ -1,8 +1,10 @@
-package com.janssen.heap_tracker_client
+package com.janssen.memdb
 
 import java.lang.Thread.sleep
 import java.net.InetSocketAddress
 import java.net.Socket
+
+const val SOCKET_POLL_WAIT_MILLIS = 100L
 
 class Client {
     fun load(filePath : String): TrackedHeap {
@@ -30,7 +32,7 @@ class Client {
 
         val trackedHeaps = mutableListOf<TrackedHeap>()
         while (!socket.isClosed) {
-            sleep(100)
+            sleep(SOCKET_POLL_WAIT_MILLIS)
             val trackedHeap = pollMessage(socket)
             trackedHeap?.let {
                 trackedHeaps.add(it)
