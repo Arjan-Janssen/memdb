@@ -11,7 +11,7 @@ data class Diff(
 ) {
     override fun toString(): String {
         val builder = StringBuilder()
-        builder.appendLine("Added:")
+            .appendLine("Added:")
         added.forEach {
             builder.appendLine(it.toString())
         }
@@ -32,7 +32,7 @@ data class Diff(
         val addedAndRemovedByAddress = (added + removed).groupBy { it.address }.toSortedMap()
 
         val minAddress = addedAndRemovedByAddress.firstKey()
-        var lastAddress =
+        val lastAddress =
             addedAndRemovedByAddress.lastKey() +
                 addedAndRemovedByAddress
                     .lastEntry()
@@ -109,7 +109,7 @@ data class Diff(
             }
         }
 
-        fun tryPlotCell(
+        fun tryPlotCellAlloc(
             builder: StringBuilder,
             allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<TrackedHeap.HeapOperation>>>,
             cellAddressRange: IntRange,
@@ -145,9 +145,9 @@ data class Diff(
             for (i in 0..<columns) {
                 val cellAddressRange = IntRange(rowStartAddress + addressRangePerCell * i,
                                                 rowStartAddress + addressRangePerCell * (i + 1) - 1)
-                if (tryPlotCell(builder, addedAllocIt, cellAddressRange))
+                if (tryPlotCellAlloc(builder, addedAllocIt, cellAddressRange))
                     continue
-                if (tryPlotCell(builder, removedAllocIt, cellAddressRange))
+                if (tryPlotCellAlloc(builder, removedAllocIt, cellAddressRange))
                     continue
 
                 repeat(COLUMN_WIDTH - 1) {
@@ -155,7 +155,7 @@ data class Diff(
                 }
                 builder.append('.')
             }
-            builder.append('\n')
+            builder.appendLine()
             return builder.toString()
         }
 

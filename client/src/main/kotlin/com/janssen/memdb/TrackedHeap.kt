@@ -33,14 +33,10 @@ data class TrackedHeap(
                     throw ParseException("Invalid diff spec $specStr. Expected format [from]..[to]", 0)
                 }
                 val fromPosition = trackedHeap.markerPosition(fromToSpec[0])
-                if (fromPosition == null) {
-                    throw ParseException("Invalid from position in diff spec $specStr.", 0)
-                }
+                    ?: throw ParseException("Invalid from position in diff spec $specStr.", 0)
                 val toPositionExclusive = trackedHeap.markerPosition(fromToSpec[1])
-                if (toPositionExclusive == null) {
-                    throw ParseException("Invalid to position in diff spec $specStr.", 1)
-                }
-                val range = IntRange(fromPosition!!, (toPositionExclusive!!) - 1)
+                    ?: throw ParseException("Invalid to position in diff spec $specStr.", 1)
+                val range = IntRange(fromPosition, (toPositionExclusive) - 1)
                 return TrackedHeap.DiffSpec(trackedHeap, range)
             }
         }

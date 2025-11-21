@@ -7,6 +7,7 @@ import kotlinx.cli.Subcommand
 import kotlinx.cli.default
 import java.io.FileNotFoundException
 import java.net.ConnectException
+import java.net.UnknownHostException
 
 const val DEFAULT_CONNECTION_PORT = 8989
 const val DEFAULT_PLOT_COLUMNS = 80
@@ -26,7 +27,9 @@ fun doCapture(connectionString: String): TrackedHeap? {
         val client = Client()
         return client.capture(host, port)
     } catch (e: ConnectException) {
-        println("Unable to connect to heap-tracker server: ${e.message}")
+        println("Capturing failed. Unable to connect to server. ${e.message}")
+    } catch (e: UnknownHostException) {
+        println("Capturing failed. Unknown host: ${e.message}")
     }
 
     return null
