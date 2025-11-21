@@ -4,6 +4,7 @@ protobuf-version = "4.32.1"
 protobuf-plugin-version = "0.9.5"
 kotlinx-version = "0.3.6"
 detekt-version = "1.23.8"
+ktlint-version = "14.0.1"
 
 [libraries]
 google-protobuf-kotlin = { group = "com.google.protobuf",  name = "protobuf-kotlin", version.ref = "protobuf-version" }
@@ -14,4 +15,5 @@ jetbrains-kotlinx-cli = {group = "org.jetbrains.kotlinx", name = "kotlinx-cli", 
 
 [plugins]
 google-protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin-version" }
-arturbosch-detekt = {id = "io.gitlab.arturbosch.detekt",  version.ref =  "detekt-version" }
+arturbosch-detekt = {id = "io.gitlab.arturbosch.detekt",  version.ref = "detekt-version" }
+jlleitschuh-ktlint = {id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-version" }
