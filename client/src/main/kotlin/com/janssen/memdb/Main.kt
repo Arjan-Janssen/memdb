@@ -36,8 +36,7 @@ fun doLoad(filePath: String): TrackedHeap? {
     println("Loading tracked heap from $filePath...")
     try {
         return TrackedHeap.loadFromFile(filePath)
-    }
-    catch (e: FileNotFoundException) {
+    } catch (e: FileNotFoundException) {
         println("File not found: $filePath")
     }
     return null
@@ -62,13 +61,18 @@ fun doPlot(
     val rangeSpec: TrackedHeap.DiffSpec =
         rangeSpec?.let {
             TrackedHeap.DiffSpec.fromString(trackedHeap, it)
-        } ?: TrackedHeap.DiffSpec(trackedHeap, IntRange(0, trackedHeap.heapOperations.size - 1))
+        } ?: TrackedHeap.DiffSpec(
+            trackedHeap,
+            IntRange(0, trackedHeap.heapOperations.size - 1),
+        )
     println("Plot:")
-    println(rangeSpec.trackedHeap.plotGraph(
-        rangeSpec.range,
-        TrackedHeap.PlotDimensions(columns, rows),
-        '#',
-        ))
+    println(
+        rangeSpec.trackedHeap.plotGraph(
+            rangeSpec.range,
+            TrackedHeap.PlotDimensions(columns, rows),
+            '#',
+        )
+    )
 }
 
 fun doTruncate(
@@ -92,9 +96,9 @@ fun doBacktrace(
     }
 }
 
-fun doHistogram(trackedHeap: TrackedHeap) {
+fun doHistogram(trackedHeap: TrackedHeap, buckets: Boolean) {
     println("Histogram:")
-    println(Histogram.build(trackedHeap).toString())
+    println(Histogram.build(trackedHeap, buckets).toString())
 }
 
 fun doDiffLayoutPlot(
@@ -175,12 +179,14 @@ class PlotDiffLayout :
     }
 }
 
+const val APP_NAME = "memdb"
+
 @OptIn(ExperimentalCli::class)
 @Suppress("LongMethod")
 fun main(args: Array<String>) {
-    println("memdb (c) 2025 by Arjan Janssen")
+    println("$APP_NAME (c) 2025 by Arjan Janssen")
 
-    val parser = ArgParser("heap-tracker")
+    val parser = ArgParser(APP_NAME)
     val capture by parser.option(
         ArgType.String,
         shortName = "c",
@@ -205,6 +211,13 @@ fun main(args: Array<String>) {
             shortName = "hist",
             fullName = "histogram",
             description = "Histogram",
+        ).default(false)
+    val noBuckets by parser
+        .option(
+            type = ArgType.Boolean,
+            shortName = "nb",
+            fullName = "no-buckets",
+            description = "Disable power-of-two buckets for histogram"
         ).default(false)
     val diff by parser.option(
         ArgType.String,
@@ -249,7 +262,7 @@ fun main(args: Array<String>) {
         doDiffLayoutPlot(trackedHeap, diffSpec, plotDiffLayout.columns, plotDiffLayout.rows)
     }
     if (histogram) {
-        doHistogram(trackedHeap)
+        doHistogram(trackedHeap, !noBuckets)
     }
     diff?.let {
         doDiff(trackedHeap, it)

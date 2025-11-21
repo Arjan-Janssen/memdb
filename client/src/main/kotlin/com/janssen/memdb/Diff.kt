@@ -145,10 +145,8 @@ data class Diff(
             for (i in 0..<columns) {
                 val cellAddressRange = IntRange(rowStartAddress + addressRangePerCell * i,
                                                 rowStartAddress + addressRangePerCell * (i + 1) - 1)
-
                 if (tryPlotCell(builder, addedAllocIt, cellAddressRange))
                     continue
-
                 if (tryPlotCell(builder, removedAllocIt, cellAddressRange))
                     continue
 
