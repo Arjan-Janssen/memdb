@@ -49,7 +49,7 @@ fun doPlot(trackedHeap: TrackedHeap,
         TrackedHeap.DiffSpec.fromString(trackedHeap, it)
     } ?: TrackedHeap.DiffSpec(trackedHeap, IntRange(0, trackedHeap.heapOperations.size - 1))
     println("Plot:")
-    println(rangeSpec.trackedHeap.toGraph(rangeSpec.range, columns, rows, '#'))
+    println(rangeSpec.trackedHeap.plotGraph(rangeSpec.range, columns, rows, '#'))
 }
 
 fun doTruncate(trackedHeap: TrackedHeap, rangeSpec: String): TrackedHeap {
