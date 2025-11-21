@@ -19,14 +19,21 @@ data class Histogram(
     }
 
     companion object {
-        fun pow2Bucket(value: Int):  Int =
-            if (value.takeHighestOneBit() == value) value else value.takeHighestOneBit() shl 1
+        fun pow2Bucket(value: Int): Int =
+            if (value.takeHighestOneBit() == value) {
+                value
+            } else {
+                value.takeHighestOneBit() shl 1
+            }
 
-        fun build(trackedHeap: TrackedHeap, buckets: Boolean): Histogram {
+        fun build(
+            trackedHeap: TrackedHeap,
+            buckets: Boolean,
+        ): Histogram {
             val map =
                 trackedHeap.heapOperations
-                    .filter { it.kind == TrackedHeap.HeapOperationKind.Alloc }
-                    .groupingBy { if (buckets) pow2Bucket(it.size) else it.size}
+                    .filter { it.kind == HeapOperationKind.Alloc }
+                    .groupingBy { if (buckets) pow2Bucket(it.size) else it.size }
                     .eachCount()
             return Histogram(TreeMap(map))
         }

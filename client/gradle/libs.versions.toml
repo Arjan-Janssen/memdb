@@ -6,6 +6,7 @@ kotlinx-version = "0.3.6"
 detekt-version = "1.23.8"
 ktlint-version = "14.0.1"
 tasktree-version = "4.0.1"
+junit-version = "6.0.1"
 
 [libraries]
 google-protobuf-kotlin = { group = "com.google.protobuf", name = "protobuf-kotlin", version.ref = "protobuf-version" }
@@ -13,6 +14,8 @@ jetbrains-kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdli
 google-protobuf-gradle-plugin = { group = "com.google.protobuf", name = "protobuf-gradle-plugin", version.ref = "protobuf-plugin-version" }
 jetbrains-kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin-version" }
 jetbrains-kotlinx-cli = { group = "org.jetbrains.kotlinx", name = "kotlinx-cli", version.ref = "kotlinx-version" }
+test-junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-version" }
+test-junit-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-version" }
 
 [plugins]
 google-protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin-version" }

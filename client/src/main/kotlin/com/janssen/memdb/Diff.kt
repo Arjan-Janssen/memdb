@@ -6,12 +6,13 @@ import kotlin.math.ceil
 const val COLUMN_WIDTH = 8
 
 data class Diff(
-    val added: List<TrackedHeap.HeapOperation>,
-    val removed: List<TrackedHeap.HeapOperation>,
+    val added: List<HeapOperation>,
+    val removed: List<HeapOperation>,
 ) {
     override fun toString(): String {
-        val builder = StringBuilder()
-            .appendLine("Added:")
+        val builder =
+            StringBuilder()
+                .appendLine("Added:")
         added.forEach {
             builder.appendLine(it.toString())
         }
@@ -23,9 +24,7 @@ data class Diff(
         return builder.toString()
     }
 
-    fun plot(
-        dimensions: TrackedHeap.PlotDimensions,
-    ): String {
+    fun plot(dimensions: TrackedHeap.PlotDimensions): String {
         val builder = StringBuilder()
         val addedByAddress = added.groupBy { it.address }.toSortedMap()
         val removedByAddress = removed.groupBy { it.address }.toSortedMap()
@@ -74,7 +73,7 @@ data class Diff(
         ) = ceil(value.toDouble() / multiple).toInt() * multiple
 
         fun inAddressRange(
-            alloc: TrackedHeap.HeapOperation?,
+            alloc: HeapOperation?,
             cellAddressRange: IntRange,
         ): Boolean {
             if (alloc == null) {
@@ -88,7 +87,7 @@ data class Diff(
         }
 
         fun advanceItToCell(
-            allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<TrackedHeap.HeapOperation>>>,
+            allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
             cellStartAddress: Int,
         ) {
             while (allocIt.hasNext() &&
@@ -111,7 +110,7 @@ data class Diff(
 
         fun tryPlotCellAlloc(
             builder: StringBuilder,
-            allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<TrackedHeap.HeapOperation>>>,
+            allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
             cellAddressRange: IntRange,
         ): Boolean {
             advanceItToCell(allocIt, cellAddressRange.start)
@@ -125,7 +124,7 @@ data class Diff(
             builder.append(
                 String.format(
                     Locale.getDefault(),
-                    "%${COLUMN_WIDTH-1}d",
+                    "%${COLUMN_WIDTH - 1}d",
                     alloc.seqNo,
                 ),
             )
@@ -133,22 +132,28 @@ data class Diff(
             return true
         }
 
+        @Suppress("LoopWithTooManyJumpStatements")
         fun plotRow(
             rowStartAddress: Int,
             addressRangePerCell: Int,
             columns: Int,
-            addedAllocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<TrackedHeap.HeapOperation>>>,
-            removedAllocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<TrackedHeap.HeapOperation>>>,
+            addedAllocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
+            removedAllocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
         ): String {
             val builder = StringBuilder()
             builder.append("${rowStartAddress.toInt().toHexString()}: ")
             for (i in 0..<columns) {
-                val cellAddressRange = IntRange(rowStartAddress + addressRangePerCell * i,
-                                                rowStartAddress + addressRangePerCell * (i + 1) - 1)
-                if (tryPlotCellAlloc(builder, addedAllocIt, cellAddressRange))
+                val cellAddressRange =
+                    IntRange(
+                        rowStartAddress + addressRangePerCell * i,
+                        rowStartAddress + addressRangePerCell * (i + 1) - 1,
+                    )
+                if (tryPlotCellAlloc(builder, addedAllocIt, cellAddressRange)) {
                     continue
-                if (tryPlotCellAlloc(builder, removedAllocIt, cellAddressRange))
+                }
+                if (tryPlotCellAlloc(builder, removedAllocIt, cellAddressRange)) {
                     continue
+                }
 
                 repeat(COLUMN_WIDTH - 1) {
                     builder.append(" ")
@@ -160,9 +165,9 @@ data class Diff(
         }
 
         fun removeAllocation(
-            added: MutableSet<TrackedHeap.HeapOperation>,
-            removed: MutableSet<TrackedHeap.HeapOperation>,
-            dealloc: TrackedHeap.HeapOperation,
+            added: MutableSet<HeapOperation>,
+            removed: MutableSet<HeapOperation>,
+            dealloc: HeapOperation,
         ) {
             if (added
                     .find {
@@ -177,15 +182,15 @@ data class Diff(
 
         fun compute(spec: TrackedHeap.DiffSpec): Diff {
             val diffHeap = TrackedHeap.truncate(spec)
-            val added = mutableSetOf<TrackedHeap.HeapOperation>()
-            val removed = mutableSetOf<TrackedHeap.HeapOperation>()
+            val added = mutableSetOf<HeapOperation>()
+            val removed = mutableSetOf<HeapOperation>()
             diffHeap.heapOperations.forEach {
                 when (it.kind) {
-                    TrackedHeap.HeapOperationKind.Alloc -> {
+                    HeapOperationKind.Alloc -> {
                         added.add(it)
                     }
 
-                    TrackedHeap.HeapOperationKind.Dealloc -> {
+                    HeapOperationKind.Dealloc -> {
                         removeAllocation(added, removed, it)
                     }
                 }

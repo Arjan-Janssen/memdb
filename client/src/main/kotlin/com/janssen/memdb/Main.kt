@@ -40,7 +40,7 @@ fun doLoad(filePath: String): TrackedHeap? {
     try {
         return TrackedHeap.loadFromFile(filePath)
     } catch (e: FileNotFoundException) {
-        println("File not found: $filePath")
+        println("File not found. ${e.message}")
     }
     return null
 }
@@ -74,7 +74,7 @@ fun doPlot(
             rangeSpec.range,
             TrackedHeap.PlotDimensions(columns, rows),
             '#',
-        )
+        ),
     )
 }
 
@@ -99,7 +99,10 @@ fun doBacktrace(
     }
 }
 
-fun doHistogram(trackedHeap: TrackedHeap, buckets: Boolean) {
+fun doHistogram(
+    trackedHeap: TrackedHeap,
+    buckets: Boolean,
+) {
     println("Histogram:")
     println(Histogram.build(trackedHeap, buckets).toString())
 }
@@ -112,7 +115,7 @@ fun doDiffLayoutPlot(
 ) {
     println("Layout plot:")
     val diffSpec = TrackedHeap.DiffSpec.fromString(trackedHeap, diffSpecStr)
-    val diff = Diff.compute(diffSpec);
+    val diff = Diff.compute(diffSpec)
     println(diff.plot(TrackedHeap.PlotDimensions(columns, rows)))
 }
 
@@ -220,7 +223,7 @@ fun main(args: Array<String>) {
             type = ArgType.Boolean,
             shortName = "nb",
             fullName = "no-buckets",
-            description = "Disable power-of-two buckets for histogram"
+            description = "Disable power-of-two buckets for histogram",
         ).default(false)
     val diff by parser.option(
         ArgType.String,

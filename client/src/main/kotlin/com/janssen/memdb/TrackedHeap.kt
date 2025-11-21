@@ -6,17 +6,45 @@ import java.text.ParseException
 import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.min
-import kotlin.time.Duration
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 data class TrackedHeap(
     val heapOperations: List<HeapOperation>,
     val markers: List<Marker>,
 ) {
-    enum class HeapOperationKind {
-        Alloc,
-        Dealloc,
+    class Builder {
+        val heapOperations = mutableListOf<HeapOperation>()
+        val markers = mutableListOf<Marker>()
+
+        fun addHeapOperation(builder: HeapOperation.Builder): Builder {
+            heapOperations.add(builder.build())
+            return this
+        }
+
+        fun addHeapOperation(heapOperation: HeapOperation): Builder {
+            heapOperations.add(heapOperation)
+            return this
+        }
+
+        fun addHeapOperations(heapOperations: List<HeapOperation>): Builder {
+            heapOperations.forEach { op ->
+                addHeapOperation(op)
+            }
+            return this
+        }
+
+        fun addMarker(marker: Marker): Builder {
+            markers.add(marker)
+            return this
+        }
+
+        fun addMarkers(markers: List<Marker>): Builder {
+            markers.forEach { marker ->
+                addMarker(marker)
+            }
+            return this
+        }
+
+        fun build(): TrackedHeap = TrackedHeap(heapOperations, markers)
     }
 
     data class DiffSpec(
@@ -32,101 +60,15 @@ data class TrackedHeap(
                 if (fromToSpec.size != 2) {
                     throw ParseException("Invalid diff spec $specStr. Expected format [from]..[to]", 0)
                 }
-                val fromPosition = trackedHeap.markerPosition(fromToSpec[0])
-                    ?: throw ParseException("Invalid from position in diff spec $specStr.", 0)
-                val toPositionExclusive = trackedHeap.markerPosition(fromToSpec[1])
-                    ?: throw ParseException("Invalid to position in diff spec $specStr.", 1)
+                val fromPosition =
+                    trackedHeap.markerPosition(fromToSpec[0])
+                        ?: throw ParseException("Invalid from position in diff spec $specStr.", 0)
+                val toPositionExclusive =
+                    trackedHeap.markerPosition(fromToSpec[1])
+                        ?: throw ParseException("Invalid to position in diff spec $specStr.", 1)
                 val range = IntRange(fromPosition, (toPositionExclusive) - 1)
                 return TrackedHeap.DiffSpec(trackedHeap, range)
             }
-        }
-    }
-
-    data class HeapOperation(
-        val seqNo: Int,
-        val kind: HeapOperationKind,
-        val durationSinceServerStart: Duration,
-        val address: Int,
-        val size: Int,
-        val threadId: Int,
-        val backtrace: String,
-    ) {
-        override fun toString(): String =
-            StringBuilder()
-                .appendLine("heap operation[")
-                .appendLine("seq no: $seqNo")
-                .appendLine("kind: $kind")
-                .appendLine("duration: $durationSinceServerStart")
-                .appendLine(
-                    String.format(
-                        Locale.getDefault(),
-                        "address: %s",
-                        address.toHexString(),
-                    ),
-                ).appendLine("size:  $size")
-                .appendLine("thread id: $threadId")
-                .appendLine("backtrace: [not shown]")
-                .appendLine("]")
-                .toString()
-
-        companion object {
-            fun fromProtobuf(
-                seqNo: Int,
-                proto: heap_tracker.Message.HeapOperation,
-            ): HeapOperation {
-                val durationSinceServerStart = proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS)
-                val heapOperationType =
-                    when (proto.kind) {
-                        Message.HeapOperation.Kind.Alloc -> {
-                            HeapOperationKind.Alloc
-                        }
-
-                        else -> {
-                            HeapOperationKind.Dealloc
-                        }
-                    }
-
-                return HeapOperation(
-                    seqNo,
-                    heapOperationType,
-                    durationSinceServerStart,
-                    proto.address.toInt(),
-                    proto.size.toInt(),
-                    proto.threadId.toInt(),
-                    proto.backtrace,
-                )
-            }
-
-            fun toProtobuf(heapOperation: HeapOperation): heap_tracker.Message.HeapOperation =
-                heap_tracker.Message.HeapOperation
-                    .newBuilder()
-                    .setKind(
-                        when (heapOperation.kind) {
-                            HeapOperationKind.Alloc -> heap_tracker.Message.HeapOperation.Kind.Alloc
-                            else -> heap_tracker.Message.HeapOperation.Kind.Dealloc
-                        },
-                    ).setMicrosSinceServerStart(heapOperation.durationSinceServerStart.inWholeMicroseconds)
-                    .setAddress(heapOperation.address.toLong())
-                    .setSize(heapOperation.size.toLong())
-                    .setThreadId(heapOperation.threadId.toLong())
-                    .setBacktrace(heapOperation.backtrace)
-                    .build()
-        }
-    }
-
-    data class Marker(
-        val firstOperationSeqNo: Int,
-        val name: String,
-    ) {
-        companion object {
-            fun fromProtobuf(proto: heap_tracker.Message.Marker) = Marker(proto.firstOperationSeqNo.toInt(), proto.name)
-
-            fun toProtobuf(marker: Marker): heap_tracker.Message.Marker =
-                heap_tracker.Message.Marker
-                    .newBuilder()
-                    .setName(marker.name)
-                    .setFirstOperationSeqNo(marker.firstOperationSeqNo.toLong())
-                    .build()
         }
     }
 
@@ -186,26 +128,32 @@ data class TrackedHeap(
         return builder.toString()
     }
 
+    data class RowOperations(
+        val seqNo: Int,
+        val count: Int,
+        val plotRange: IntRange,
+    )
+
     fun plotGraphRow(
-        rowSeqNo: Int,
-        operationsPerRow: Int,
-        range: IntRange,
+        rowOperations: RowOperations,
         columns: Int,
         numSymbols: Int,
         symbol: Char,
     ): String {
         val builder = StringBuilder()
-        marker(rowSeqNo)?.let {
+        marker(rowOperations.seqNo)?.let {
             builder.appendLine(plotMarkerLine(it.name, columns))
         }
 
-        builder.append(String.format(Locale.getDefault(), "%10d: ", rowSeqNo))
+        builder.append(String.format(Locale.getDefault(), "%10d: ", rowOperations.seqNo))
         repeat(numSymbols) {
             builder.append(symbol)
         }
         builder.appendLine()
 
-        for (skippedSeqNo in rowSeqNo + 1.. min(rowSeqNo + operationsPerRow - 1, range.last)) {
+        val markerEndSeqNo = min(rowOperations.seqNo + rowOperations.count - 1, rowOperations.plotRange.last)
+        val markerRange = rowOperations.seqNo + 1..markerEndSeqNo
+        for (skippedSeqNo in markerRange) {
             marker(skippedSeqNo)?.let {
                 builder.appendLine(plotMarkerLine(it.name, columns))
             }
@@ -214,10 +162,13 @@ data class TrackedHeap(
         return builder.toString()
     }
 
-    data class PlotDimensions(val columns: Int, val rows: Int)
+    data class PlotDimensions(
+        val columns: Int,
+        val rows: Int,
+    )
 
     fun plotGraph(
-        range: IntRange,
+        operationRange: IntRange,
         dimensions: PlotDimensions,
         symbol: Char,
     ): String {
@@ -231,19 +182,21 @@ data class TrackedHeap(
         val builder = StringBuilder()
         builder.appendLine(plotHeading(dimensions.columns, maxHeapSize))
 
-        val numOperations = 1 + (range.endInclusive - range.start)
+        val numOperations = 1 + (operationRange.endInclusive - operationRange.start)
         val clampedRows = if (numOperations < dimensions.rows) numOperations else dimensions.rows
         if (clampedRows == 0) {
             return builder.toString()
         }
         val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
-        for (rowSeqNo in range step operationsPerRow) {
+        for (rowSeqNo in operationRange step operationsPerRow) {
             val numSymbols = (heapSizes[rowSeqNo] * dimensions.columns) / maxHeapSize
             builder.append(
                 plotGraphRow(
-                    rowSeqNo,
-                    operationsPerRow,
-                    range,
+                    RowOperations(
+                        rowSeqNo,
+                        operationsPerRow,
+                        operationRange,
+                    ),
                     dimensions.columns,
                     numSymbols,
                     symbol,
@@ -252,7 +205,7 @@ data class TrackedHeap(
         }
 
         // print potential terminating markers
-        marker(range.last + 1)?.let {
+        marker(operationRange.last + 1)?.let {
             builder.appendLine(plotMarkerLine(it.name, dimensions.columns))
         }
 
@@ -278,13 +231,12 @@ data class TrackedHeap(
 
     companion object {
         fun concatenate(trackedHeaps: List<TrackedHeap>): TrackedHeap {
-            val heapOperations = mutableListOf<HeapOperation>()
-            val markers = mutableListOf<Marker>()
+            val builder = Builder()
             trackedHeaps.forEach {
-                heapOperations.addAll(it.heapOperations)
-                markers.addAll(it.markers)
+                builder.addHeapOperations(it.heapOperations)
+                builder.addMarkers(it.markers)
             }
-            return TrackedHeap(heapOperations, markers)
+            return builder.build()
         }
 
         fun truncate(diffSpec: DiffSpec): TrackedHeap {
