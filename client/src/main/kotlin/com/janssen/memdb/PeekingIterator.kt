@@ -12,7 +12,7 @@ fun <T> Iterator<T>.peeking() = object : PeekingIterator<T> {
 
     override fun hasNext(): Boolean = hasPeeked || this@peeking.hasNext()
 
-    override fun next(): T  {
+    override fun next(): T {
         return if (hasPeeked) {
             hasPeeked = false
             @Suppress("UNCHECKED_CAST")

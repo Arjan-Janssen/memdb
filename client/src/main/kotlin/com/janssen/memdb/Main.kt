@@ -20,8 +20,7 @@ fun doCapture(connectionString: String): TrackedHeap? {
     try {
         val client = Client()
         return client.capture(hostName, port)
-    }
-    catch (e: ConnectException) {
+    } catch (e: ConnectException) {
         println("Unable to connect to heap-tracker server: ${e.message}")
     }
 
@@ -34,17 +33,19 @@ fun doLoad(filePath: String): TrackedHeap {
     return client.load(filePath)
 }
 
-fun doDiff(trackedHeap: TrackedHeap, specStr : String) : Diff {
+fun doDiff(trackedHeap: TrackedHeap, specStr: String): Diff {
     val diffSpec = TrackedHeap.DiffSpec.fromString(trackedHeap, specStr)
     val diff = Diff.compute(diffSpec)
     println("diff from position ${diffSpec.range.start} to ${diffSpec.range.endInclusive}:\n${diff}")
     return diff
 }
 
-fun doPlot(trackedHeap: TrackedHeap,
-           rangeSpec: String?,
-           columns: Int,
-           rows: Int) {
+fun doPlot(
+    trackedHeap: TrackedHeap,
+    rangeSpec: String?,
+    columns: Int,
+    rows: Int
+) {
     val rangeSpec: TrackedHeap.DiffSpec = rangeSpec?.let {
         TrackedHeap.DiffSpec.fromString(trackedHeap, it)
     } ?: TrackedHeap.DiffSpec(trackedHeap, IntRange(0, trackedHeap.heapOperations.size - 1))
@@ -59,11 +60,10 @@ fun doTruncate(trackedHeap: TrackedHeap, rangeSpec: String): TrackedHeap {
 }
 
 fun doBacktrace(trackedHeap: TrackedHeap, seqNo: Int) {
-    if (seqNo in 0..< trackedHeap.heapOperations.size) {
+    if (seqNo in 0..<trackedHeap.heapOperations.size) {
         println("Backtrace:")
         println(trackedHeap.heapOperations[seqNo].backtrace)
-    }
-    else {
+    } else {
         println("Invalid seqNo: $seqNo. Tracked heap size: ${trackedHeap.heapOperations.size}")
     }
 }
@@ -84,23 +84,32 @@ fun doSave(trackedHeap: TrackedHeap, filePath: String) {
 }
 
 @OptIn(ExperimentalCli::class)
-class Plot: Subcommand("plot",
-    "Plot tracked heap") {
-    val columns by option(ArgType.Int,
+class Plot : Subcommand(
+    "plot",
+    "Plot tracked heap"
+) {
+    val columns by option(
+        ArgType.Int,
         "columns",
         "col",
-        "Columns in characters")
+        "Columns in characters"
+    )
         .default(DEFAULT_PLOT_COLUMNS)
-    val rows by option(ArgType.Int,
+    val rows by option(
+        ArgType.Int,
         "rows",
         shortName = "row",
-        description = "Rows in characters")
-        .default(DEFAULT_PLOT_ROWS
+        description = "Rows in characters"
+    )
+        .default(
+            DEFAULT_PLOT_ROWS
         )
-    val range by option(ArgType.String,
+    val range by option(
+        ArgType.String,
         "range",
         shortName = "r",
-        description = "Limit plot to range")
+        description = "Limit plot to range"
+    )
     var enabled = false
     override fun execute() {
         enabled = true
@@ -108,19 +117,24 @@ class Plot: Subcommand("plot",
 }
 
 @OptIn(ExperimentalCli::class)
-class PlotLayout : Subcommand("plot-layout",
-    "Play memory layout") {
-    val columns by option(ArgType.Int,
+class PlotLayout : Subcommand(
+    "plot-layout",
+    "Play memory layout"
+) {
+    val columns by option(
+        ArgType.Int,
         "columns",
         "col",
-        "Columns in characters")
+        "Columns in characters"
+    )
         .default(DEFAULT_PLOT_COLUMNS)
-    val rows by option(ArgType.Int,
+    val rows by option(
+        ArgType.Int,
         "rows",
         shortName = "row",
-        description = "Rows in characters")
-        .default(DEFAULT_PLOT_ROWS
-        )
+        description = "Rows in characters"
+    )
+        .default(DEFAULT_PLOT_ROWS)
     var enabled = false
     override fun execute() {
         enabled = true
@@ -128,46 +142,61 @@ class PlotLayout : Subcommand("plot-layout",
 }
 
 @OptIn(ExperimentalCli::class)
+@Suppress("LongMethod")
 fun main(args: Array<String>) {
     println("memdb (c) 2025 by Arjan Janssen")
 
     val parser = ArgParser("heap-tracker")
-    val capture by parser.option(ArgType.String,
-                                 shortName = "c",
-                                 fullName = "capture",
-                                 description = "Capture heap trace")
-    val load by parser.option(ArgType.String,
-                              shortName = "l",
-                              fullName = "load",
-                              description = "Load stored heap trace")
-    val save by parser.option(ArgType.String,
-                              shortName = "s",
-                              fullName = "save",
-                              description = "Save stored heap trace")
-    val histogram by parser.option(ArgType.Boolean,
-                                   shortName = "hist",
-                                   fullName = "histogram",
-                                   description = "Histogram")
+    val capture by parser.option(
+        ArgType.String,
+        shortName = "c",
+        fullName = "capture",
+        description = "Capture heap trace"
+    )
+    val load by parser.option(
+        ArgType.String,
+        shortName = "l",
+        fullName = "load",
+        description = "Load stored heap trace"
+    )
+    val save by parser.option(
+        ArgType.String,
+        shortName = "s",
+        fullName = "save",
+        description = "Save stored heap trace"
+    )
+    val histogram by parser.option(
+        ArgType.Boolean,
+        shortName = "hist",
+        fullName = "histogram",
+        description = "Histogram"
+    )
         .default(false)
-    val diff by parser.option(ArgType.String,
-                              shortName = "d",
-                              fullName = "diff",
-                              description = "Diff between two positions in the tracked heap")
-    val truncate by parser.option(ArgType.String,
-                                  shortName = "t",
-                                  fullName = "truncate",
-                                  description = "Truncate the tracked heap")
-    val backtrace by parser.option(ArgType.Int,
-                                   shortName = "bt",
-                                   fullName = "backtrace",
-                                   description = "Shows a back trace for heap alloc with the specified sequence number")
+    val diff by parser.option(
+        ArgType.String,
+        shortName = "d",
+        fullName = "diff",
+        description = "Diff between two positions in the tracked heap"
+    )
+    val truncate by parser.option(
+        ArgType.String,
+        shortName = "t",
+        fullName = "truncate",
+        description = "Truncate the tracked heap"
+    )
+    val backtrace by parser.option(
+        ArgType.Int,
+        shortName = "bt",
+        fullName = "backtrace",
+        description = "Shows a back trace for heap alloc with the specified sequence number"
+    )
 
     val plot = Plot()
     val plotLayout = PlotLayout()
     parser.subcommands(plot, plotLayout)
     parser.parse(args)
 
-    var trackedHeap : TrackedHeap? = null
+    var trackedHeap: TrackedHeap? = null
     capture?.let {
         trackedHeap = doCapture(it)
     }
@@ -184,7 +213,7 @@ fun main(args: Array<String>) {
         doHistogram(trackedHeap)
     }
     diff?.let {
-        val diffResult = doDiff(trackedHeap,it)
+        val diffResult = doDiff(trackedHeap, it)
         if (plotLayout.enabled) {
             doLayoutPlot(diffResult, plotLayout.columns, plotLayout.rows)
         }
