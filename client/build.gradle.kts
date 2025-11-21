@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.google.protobuf)
     alias(libs.plugins.arturbosch.detekt)
     alias(libs.plugins.jlleitschuh.ktlint)
+    alias(libs.plugins.dorongold.tasktree)
 }
 
 repositories {
