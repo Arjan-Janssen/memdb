@@ -80,7 +80,7 @@ fun doLayoutPlot(diff: Diff, columns: Int, rows: Int) {
 
 fun doSave(trackedHeap: TrackedHeap, filePath: String) {
     println("Saving tracked heap to $filePath...")
-    TrackedHeap.saveToFile(trackedHeap, filePath)
+    trackedHeap.saveToFile(filePath)
 }
 
 @OptIn(ExperimentalCli::class)

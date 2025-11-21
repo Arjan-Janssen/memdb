@@ -190,15 +190,8 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
             currentHeapSize += if (it.kind == HeapOperationKind.Alloc) it.size else -it.size
             heapSizes.addLast(currentHeapSize)
         }
-        var maxHeapSize = 0
-        heapSizes.forEach {
-            if (it > maxHeapSize) {
-                maxHeapSize = it
-            }
-        }
-
+        var maxHeapSize = heapSizes.maxOrNull() ?: 0
         val builder = StringBuilder()
-
         builder.appendLine(plotHeading(columns, maxHeapSize))
         val numOperations = 1 + (range.endInclusive - range.start)
         val operationsPerRow = if (numOperations  <= rows) 1
@@ -219,6 +212,22 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
         return builder.toString()
     }
 
+    fun saveToFile(filePath : String) {
+        val outputStream = File(filePath).outputStream()
+        toProtobuf().writeTo(outputStream)
+    }
+
+    fun toProtobuf() : heap_tracker.Message.Update {
+        val builder = heap_tracker.Message.Update.newBuilder()
+        heapOperations.forEach {
+            builder.addHeapOperations(HeapOperation.toProtobuf(it))
+        }
+        markers.forEach {
+            builder.addMarkers(Marker.toProtobuf(it))
+        }
+        return builder.build()
+    }
+
     companion object {
         fun concatenate(trackedHeaps: List<TrackedHeap>): TrackedHeap {
             val heapOperations = mutableListOf<HeapOperation>()
@@ -232,7 +241,8 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
 
         fun truncate(diffSpec: DiffSpec): TrackedHeap {
             val trackedHeap = diffSpec.trackedHeap
-            return TrackedHeap(trackedHeap.heapOperations.slice(diffSpec.range), trackedHeap.markers)
+            val truncatedHeapOperations = trackedHeap.heapOperations.slice(diffSpec.range)
+            return TrackedHeap(truncatedHeapOperations, trackedHeap.markers)
         }
 
         fun loadFromFile(filePath : String) : TrackedHeap {
@@ -251,25 +261,6 @@ data class TrackedHeap(val heapOperations: List<HeapOperation>, val markers: Lis
             val markers = update.markersList.map(Marker::fromProtobuf)
 
             return TrackedHeap(heapOperations, markers)
-        }
-
-        fun saveToFile(trackedHeap: TrackedHeap, filePath : String) {
-            val outputStream = File(filePath).outputStream()
-            TrackedHeap.toProtobuf(trackedHeap).writeTo(outputStream)
-        }
-
-        fun toProtobuf(trackedHeap: TrackedHeap) : heap_tracker.Message.Update {
-            val builder = heap_tracker.Message.Update.newBuilder()
-
-            trackedHeap.heapOperations.forEach {
-                builder.addHeapOperations(HeapOperation.toProtobuf(it))
-            }
-
-            trackedHeap.markers.forEach {
-                builder.addMarkers(Marker.toProtobuf(it))
-            }
-
-            return builder.build()
         }
     }
 }
