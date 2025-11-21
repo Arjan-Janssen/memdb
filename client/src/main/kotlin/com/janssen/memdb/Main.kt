@@ -5,6 +5,7 @@ import kotlinx.cli.ArgType
 import kotlinx.cli.ExperimentalCli
 import kotlinx.cli.Subcommand
 import kotlinx.cli.default
+import java.io.FileNotFoundException
 import java.net.ConnectException
 
 const val DEFAULT_CONNECTION_PORT = 8989
@@ -31,9 +32,15 @@ fun doCapture(connectionString: String): TrackedHeap? {
     return null
 }
 
-fun doLoad(filePath: String): TrackedHeap {
+fun doLoad(filePath: String): TrackedHeap? {
     println("Loading tracked heap from $filePath...")
-    return TrackedHeap.loadFromFile(filePath)
+    try {
+        return TrackedHeap.loadFromFile(filePath)
+    }
+    catch (e: FileNotFoundException) {
+        println("File not found: $filePath")
+    }
+    return null
 }
 
 fun doDiff(
@@ -57,7 +64,11 @@ fun doPlot(
             TrackedHeap.DiffSpec.fromString(trackedHeap, it)
         } ?: TrackedHeap.DiffSpec(trackedHeap, IntRange(0, trackedHeap.heapOperations.size - 1))
     println("Plot:")
-    println(rangeSpec.trackedHeap.plotGraph(rangeSpec.range, columns, rows, '#'))
+    println(rangeSpec.trackedHeap.plotGraph(
+        rangeSpec.range,
+        TrackedHeap.PlotDimensions(columns, rows),
+        '#',
+        ))
 }
 
 fun doTruncate(
@@ -86,13 +97,16 @@ fun doHistogram(trackedHeap: TrackedHeap) {
     println(Histogram.build(trackedHeap).toString())
 }
 
-fun doLayoutPlot(
-    diff: Diff,
+fun doDiffLayoutPlot(
+    trackedHeap: TrackedHeap,
+    diffSpecStr: String,
     columns: Int,
     rows: Int,
 ) {
     println("Layout plot:")
-    println(diff.plot(columns, rows))
+    val diffSpec = TrackedHeap.DiffSpec.fromString(trackedHeap, diffSpecStr)
+    val diff = Diff.compute(diffSpec);
+    println(diff.plot(TrackedHeap.PlotDimensions(columns, rows)))
 }
 
 fun doSave(
@@ -137,10 +151,10 @@ class Plot :
 }
 
 @OptIn(ExperimentalCli::class)
-class PlotLayout :
+class PlotDiffLayout :
     Subcommand(
-        "plot-layout",
-        "Play memory layout",
+        "plot-diff-layout",
+        "Plot diff memory layout",
     ) {
     val columns by option(
         ArgType.Int,
@@ -212,8 +226,8 @@ fun main(args: Array<String>) {
     )
 
     val plot = Plot()
-    val plotLayout = PlotLayout()
-    parser.subcommands(plot, plotLayout)
+    val plotDiffLayout = PlotDiffLayout()
+    parser.subcommands(plot, plotDiffLayout)
     parser.parse(args)
 
     var trackedHeap: TrackedHeap? = null
@@ -224,19 +238,21 @@ fun main(args: Array<String>) {
         trackedHeap = doLoad(it)
     }
     if (trackedHeap == null) {
+        println("No tracked heap. Closing.")
         return
     }
     if (plot.enabled) {
         doPlot(trackedHeap, plot.range, plot.columns, plot.rows)
     }
+    if (plotDiffLayout.enabled) {
+        val diffSpec = diff ?: "0..${trackedHeap.heapOperations.size - 1}"
+        doDiffLayoutPlot(trackedHeap, diffSpec, plotDiffLayout.columns, plotDiffLayout.rows)
+    }
     if (histogram) {
         doHistogram(trackedHeap)
     }
     diff?.let {
-        val diffResult = doDiff(trackedHeap, it)
-        if (plotLayout.enabled) {
-            doLayoutPlot(diffResult, plotLayout.columns, plotLayout.rows)
-        }
+        doDiff(trackedHeap, it)
     }
     backtrace?.let {
         doBacktrace(trackedHeap, it)

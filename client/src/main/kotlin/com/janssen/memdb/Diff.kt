@@ -1,6 +1,7 @@
 package com.janssen.memdb
 
 import java.util.Locale
+import kotlin.math.ceil
 
 const val COLUMN_WIDTH = 8
 
@@ -23,8 +24,7 @@ data class Diff(
     }
 
     fun plot(
-        columns: Int,
-        rows: Int,
+        dimensions: TrackedHeap.PlotDimensions,
     ): String {
         val builder = StringBuilder()
         val addedByAddress = added.groupBy { it.address }.toSortedMap()
@@ -42,13 +42,13 @@ data class Diff(
         val maxAddress =
             ceilToMultiple(
                 lastAddress,
-                rows * columns,
+                dimensions.rows * dimensions.columns,
             )
-        println("Address range: $minAddress..$maxAddress")
 
+        println("Address range: $minAddress..$maxAddress")
         val addressRange = maxAddress - minAddress
-        val addressRangePerRow = addressRange / rows
-        val addressRangePerCell = addressRangePerRow / columns
+        val addressRangePerRow = addressRange / dimensions.rows
+        val addressRangePerCell = addressRangePerRow / dimensions.columns
 
         val addedAllocIt = addedByAddress.iterator().peeking()
         val removedAllocIt = removedByAddress.iterator().peeking()
@@ -57,7 +57,7 @@ data class Diff(
                 plotRow(
                     rowStartAddress,
                     addressRangePerCell,
-                    columns,
+                    dimensions.columns,
                     addedAllocIt,
                     removedAllocIt,
                 ),
@@ -71,20 +71,19 @@ data class Diff(
         fun ceilToMultiple(
             value: Int,
             multiple: Int,
-        ) = Math.ceil(value.toDouble() / multiple).toInt() * multiple
+        ) = ceil(value.toDouble() / multiple).toInt() * multiple
 
-        fun inCell(
+        fun inAddressRange(
             alloc: TrackedHeap.HeapOperation?,
-            cellStartAddress: Int,
-            cellEndAddress: Int,
+            cellAddressRange: IntRange,
         ): Boolean {
             if (alloc == null) {
                 return false
             }
             val lastAllocEnd = alloc.address + alloc.size
-            val startWithinCell = alloc.address in cellStartAddress..<cellEndAddress
-            val endWithinCell = lastAllocEnd in cellStartAddress..<cellEndAddress
-            val rangeOverlapsCell = (alloc.address < cellStartAddress && lastAllocEnd > cellStartAddress)
+            val startWithinCell = alloc.address in cellAddressRange.start..cellAddressRange.last
+            val endWithinCell = lastAllocEnd in cellAddressRange
+            val rangeOverlapsCell = (alloc.address < cellAddressRange.start && lastAllocEnd > cellAddressRange.start)
             return startWithinCell || endWithinCell || rangeOverlapsCell
         }
 
@@ -110,6 +109,30 @@ data class Diff(
             }
         }
 
+        fun tryPlotCell(
+            builder: StringBuilder,
+            allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<TrackedHeap.HeapOperation>>>,
+            cellAddressRange: IntRange,
+        ): Boolean {
+            advanceItToCell(allocIt, cellAddressRange.start)
+            if (!allocIt.hasNext()) {
+                return false
+            }
+            val alloc = allocIt.peek().value.first()
+            if (!inAddressRange(alloc, cellAddressRange)) {
+                return false
+            }
+            builder.append(
+                String.format(
+                    Locale.getDefault(),
+                    "%${COLUMN_WIDTH-1}d",
+                    alloc.seqNo,
+                ),
+            )
+            builder.append('+')
+            return true
+        }
+
         fun plotRow(
             rowStartAddress: Int,
             addressRangePerCell: Int,
@@ -120,38 +143,19 @@ data class Diff(
             val builder = StringBuilder()
             builder.append("${rowStartAddress.toInt().toHexString()}: ")
             for (i in 0..<columns) {
-                val cellStartAddress = rowStartAddress + addressRangePerCell * i
-                val cellEndAddress = cellStartAddress + addressRangePerCell * (i + 1)
+                val cellAddressRange = IntRange(rowStartAddress + addressRangePerCell * i,
+                                                rowStartAddress + addressRangePerCell * (i + 1) - 1)
 
-                advanceItToCell(addedAllocIt, cellStartAddress)
-                advanceItToCell(removedAllocIt, cellStartAddress)
+                if (tryPlotCell(builder, addedAllocIt, cellAddressRange))
+                    continue
 
-                val addedAlloc = addedAllocIt.peek().value.first()
-                val removedAlloc = removedAllocIt.peek().value.first()
-                if (inCell(addedAlloc, cellStartAddress, cellEndAddress)) {
-                    builder.append(
-                        String.format(
-                            Locale.getDefault(),
-                            "%${COLUMN_WIDTH}d",
-                            addedAlloc.seqNo,
-                        ),
-                    )
-                    builder.append('+')
-                } else if (inCell(removedAlloc, cellStartAddress, cellEndAddress)) {
-                    builder.append(
-                        String.format(
-                            Locale.getDefault(),
-                            "%${COLUMN_WIDTH}d",
-                            removedAlloc.seqNo,
-                        ),
-                    )
-                    builder.append('-')
-                } else {
-                    for (i in 0..COLUMN_WIDTH - 1) {
-                        builder.append(" ")
-                    }
-                    builder.append('.')
+                if (tryPlotCell(builder, removedAllocIt, cellAddressRange))
+                    continue
+
+                repeat(COLUMN_WIDTH - 1) {
+                    builder.append(" ")
                 }
+                builder.append('.')
             }
             builder.append('\n')
             return builder.toString()

@@ -4,6 +4,8 @@ import heap_tracker.Message
 import java.io.File
 import java.text.ParseException
 import java.util.Locale
+import kotlin.math.ceil
+import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -191,6 +193,7 @@ data class TrackedHeap(
     fun plotGraphRow(
         rowSeqNo: Int,
         operationsPerRow: Int,
+        range: IntRange,
         columns: Int,
         numSymbols: Int,
         symbol: Char,
@@ -204,8 +207,9 @@ data class TrackedHeap(
         repeat(numSymbols) {
             builder.append(symbol)
         }
+        builder.appendLine()
 
-        for (skippedSeqNo in rowSeqNo + 1..<rowSeqNo + operationsPerRow) {
+        for (skippedSeqNo in rowSeqNo + 1.. min(rowSeqNo + operationsPerRow - 1, range.last)) {
             marker(skippedSeqNo)?.let {
                 builder.appendLine(plotMarkerLine(it.name, columns))
             }
@@ -214,10 +218,11 @@ data class TrackedHeap(
         return builder.toString()
     }
 
+    data class PlotDimensions(val columns: Int, val rows: Int)
+
     fun plotGraph(
         range: IntRange,
-        columns: Int,
-        rows: Int,
+        dimensions: PlotDimensions,
         symbol: Char,
     ): String {
         val heapSizes = mutableListOf<Int>()
@@ -228,28 +233,31 @@ data class TrackedHeap(
         }
         var maxHeapSize = heapSizes.maxOrNull() ?: 0
         val builder = StringBuilder()
-        builder.appendLine(plotHeading(columns, maxHeapSize))
+        builder.appendLine(plotHeading(dimensions.columns, maxHeapSize))
+
         val numOperations = 1 + (range.endInclusive - range.start)
-        val operationsPerRow =
-            if (numOperations <= rows) {
-                1
-            } else {
-                Math.ceil(numOperations / rows.toDouble()).toInt()
-            }
+        val clampedRows = if (numOperations < dimensions.rows) numOperations else dimensions.rows
+        if (clampedRows == 0) {
+            return builder.toString()
+        }
+        val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
         for (rowSeqNo in range step operationsPerRow) {
-            val numSymbols = (heapSizes[rowSeqNo] * columns) / maxHeapSize
-            builder.appendLine(
+            val numSymbols = (heapSizes[rowSeqNo] * dimensions.columns) / maxHeapSize
+            builder.append(
                 plotGraphRow(
                     rowSeqNo,
                     operationsPerRow,
-                    columns,
+                    range,
+                    dimensions.columns,
                     numSymbols,
                     symbol,
                 ),
             )
         }
-        marker(range.endInclusive + 1)?.let {
-            builder.appendLine(plotMarkerLine(it.name, columns))
+
+        // print potential terminating markers
+        marker(range.last + 1)?.let {
+            builder.appendLine(plotMarkerLine(it.name, dimensions.columns))
         }
 
         builder.appendLine()
