@@ -27,9 +27,9 @@ fun doCapture(connectionString: String): TrackedHeap? {
         val client = Client()
         return client.capture(host, port)
     } catch (e: ConnectException) {
-        println("Capturing failed. Unable to connect to server. ${e.message}")
+        println("Unable to connect to server. ${e.message}")
     } catch (e: UnknownHostException) {
-        println("Capturing failed. Unknown host: ${e.message}")
+        println("Unknown host: ${e.message}")
     }
 
     return null
