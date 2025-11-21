@@ -7,8 +7,6 @@ import java.net.Socket
 const val SOCKET_POLL_WAIT_MILLIS = 100L
 
 class Client {
-    fun load(filePath: String): TrackedHeap = TrackedHeap.loadFromFile(filePath)
-
     private fun pollMessage(socket: Socket): TrackedHeap? {
         val bytesAvailable = socket.inputStream.available()
         if (bytesAvailable == 0) {
@@ -28,7 +26,7 @@ class Client {
         port: Int,
     ): TrackedHeap {
         val socketAddress = InetSocketAddress(hostName, port)
-        var socket = Socket()
+        val socket = Socket()
         socket.connect(socketAddress)
 
         val trackedHeaps = mutableListOf<TrackedHeap>()

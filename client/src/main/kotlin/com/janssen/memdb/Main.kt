@@ -11,15 +11,20 @@ const val DEFAULT_CONNECTION_PORT = 8989
 const val DEFAULT_PLOT_COLUMNS = 80
 const val DEFAULT_PLOT_ROWS = 40
 
-fun doCapture(connectionString: String): TrackedHeap? {
+fun parseConnectionString(connectionString: String): Pair<String, Int> {
     val splitConnectionString = connectionString.split(":")
     val hostName = if (splitConnectionString.isNotEmpty()) splitConnectionString[0] else "localhost"
     val port = if (splitConnectionString.size > 1) splitConnectionString[1].toInt() else DEFAULT_CONNECTION_PORT
-    println("Capturing heap trace from $hostName:$port...")
+    return Pair(hostName, port)
+}
+
+fun doCapture(connectionString: String): TrackedHeap? {
+    val (host, port) = parseConnectionString(connectionString)
+    println("Capturing heap trace from $host:$port...")
 
     try {
         val client = Client()
-        return client.capture(hostName, port)
+        return client.capture(host, port)
     } catch (e: ConnectException) {
         println("Unable to connect to heap-tracker server: ${e.message}")
     }
@@ -29,8 +34,7 @@ fun doCapture(connectionString: String): TrackedHeap? {
 
 fun doLoad(filePath: String): TrackedHeap {
     println("Loading tracked heap from $filePath...")
-    val client = Client()
-    return client.load(filePath)
+    return TrackedHeap.loadFromFile(filePath)
 }
 
 fun doDiff(
