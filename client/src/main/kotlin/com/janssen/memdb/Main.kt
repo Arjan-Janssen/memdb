@@ -87,15 +87,17 @@ fun doTruncate(
     return TrackedHeap.truncate(diffSpec)
 }
 
-fun doBacktrace(
+fun doPrint(
     trackedHeap: TrackedHeap,
     seqNo: Int,
+    printBacktrace: Boolean,
 ) {
     if (seqNo in 0..<trackedHeap.heapOperations.size) {
-        println("Backtrace:")
-        println(trackedHeap.heapOperations[seqNo].backtrace)
+        println("Heap operation:")
+        println(trackedHeap.heapOperations[seqNo].toString(printBacktrace))
     } else {
-        println("Invalid seqNo: $seqNo. Tracked heap size: ${trackedHeap.heapOperations.size}")
+        println("Invalid heap operation sequence number: $seqNo.")
+        println("Tracked heap size: ${trackedHeap.heapOperations.size}")
     }
 }
 
@@ -237,11 +239,11 @@ fun main(args: Array<String>) {
         fullName = "truncate",
         description = "Truncate the tracked heap",
     )
-    val backtrace by parser.option(
+    val print by parser.option(
         ArgType.Int,
-        shortName = "bt",
-        fullName = "backtrace",
-        description = "Shows a back trace for heap alloc with the specified sequence number",
+        shortName = "p",
+        fullName = "print",
+        description = "Prints info about the heap operation with the specified sequence number",
     )
 
     val plot = Plot()
@@ -273,8 +275,8 @@ fun main(args: Array<String>) {
     diff?.let {
         doDiff(trackedHeap, it)
     }
-    backtrace?.let {
-        doBacktrace(trackedHeap, it)
+    print?.let {
+        doPrint(trackedHeap, it, true)
     }
     var exportHeap = trackedHeap
     truncate?.let {

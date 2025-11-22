@@ -73,7 +73,9 @@ data class HeapOperation(
         var backtrace = ""
     }
 
-    override fun toString(): String =
+    override fun toString() = toString(false)
+
+    fun toString(showBacktrace: Boolean) =
         StringBuilder()
             .appendLine("heap operation[")
             .appendLine("seq no: $seqNo")
@@ -87,7 +89,7 @@ data class HeapOperation(
                 ),
             ).appendLine("size:  $size")
             .appendLine("thread id: $threadId")
-            .appendLine("backtrace: [not shown]")
+            .appendLine("backtrace: ${if (showBacktrace) backtrace else "[not shown"}")
             .appendLine("]")
             .toString()
 
