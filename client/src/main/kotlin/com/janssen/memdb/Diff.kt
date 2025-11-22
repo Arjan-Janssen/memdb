@@ -1,6 +1,6 @@
 package com.janssen.memdb
 
-import com.janssen.memdb.TrackedHeap.RangeSpec
+import com.janssen.memdb.TrackedHeap.Range
 import java.util.Locale
 import kotlin.collections.emptyList
 import kotlin.math.ceil
@@ -209,28 +209,29 @@ data class Diff(
             }
         }
 
-        fun compute(spec: TrackedHeap.RangeSpec): Diff {
+        fun compute(
+            trackedHeap: TrackedHeap,
+            diffSpec: String,
+        ): Diff {
             // Diff spec refers to the state of the heap before the heap operation with the
             // sequence number is applied.
-            fun toTruncateRange(diffSpec: RangeSpec): RangeSpec? {
-                val trackedHeap = diffSpec.trackedHeap
-                val rangeMin = min(diffSpec.range.first, diffSpec.range.last)
-                val rangeMax = max(diffSpec.range.first, diffSpec.range.last)
+            fun toRange(diffRange: TrackedHeap.DiffRange): Range? {
+                val trackedHeap = diffRange.trackedHeap
+                val rangeMin = min(diffRange.range.first, diffRange.range.last)
+                val rangeMax = max(diffRange.range.first, diffRange.range.last)
                 if (rangeMax == rangeMin) {
                     return null
                 }
                 val truncateRange = IntRange(rangeMin, rangeMax - 1)
-                return RangeSpec(trackedHeap, truncateRange)
+                return Range.fromIntRange(trackedHeap, truncateRange)
             }
 
-            val truncateSpec = toTruncateRange(spec)
-            if (truncateSpec == null) {
-                return Diff(emptyList(), emptyList())
-            }
-            val diffHeap = TrackedHeap.truncate(truncateSpec)
+            val diffRange = TrackedHeap.DiffRange.fromString(trackedHeap, diffSpec)
+            val truncatedRange = toRange(diffRange) ?: return Diff(emptyList(), emptyList())
+            val truncatedHeap = TrackedHeap.truncate(truncatedRange)
             val added = mutableSetOf<HeapOperation>()
             val removed = mutableSetOf<HeapOperation>()
-            diffHeap.heapOperations.forEach {
+            truncatedHeap.heapOperations.forEach {
                 when (it.kind) {
                     HeapOperationKind.Alloc -> {
                         added.add(it)
@@ -241,7 +242,11 @@ data class Diff(
                     }
                 }
             }
-            return Diff(added.toList(), removed.toList())
+            if (truncatedRange.range.first <= truncatedRange.range.last) {
+                return Diff(added.toList(), removed.toList())
+            }
+            // Handle reversed ranges by swapping added and removed
+            return Diff(removed.toList(), added.toList())
         }
     }
 }

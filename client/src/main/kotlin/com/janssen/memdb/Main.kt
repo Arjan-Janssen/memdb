@@ -68,7 +68,7 @@ class HeapDB(
                 heapDB.trackedHeap?.let {
                     heapDB.doPlot(
                         it,
-                        range,
+                        range ?: TrackedHeap.Range.wholeRangeInclusiveStr(it),
                         columns,
                         rows,
                     )
@@ -245,32 +245,24 @@ class HeapDB(
 
     fun doDiff(
         trackedHeap: TrackedHeap,
-        specStr: String,
+        diffSpec: String,
     ) {
-        val diffSpec = TrackedHeap.RangeSpec.fromString(trackedHeap, specStr)
-        diff = Diff.compute(diffSpec)
+        diff = Diff.compute(trackedHeap, diffSpec)
         println("Diff:")
         println(diff.toString())
     }
 
     fun doPlot(
         trackedHeap: TrackedHeap,
-        rangeSpecStr: String?,
+        rangeSpecStr: String,
         columns: Int,
         rows: Int,
     ) {
-        val rangeSpec: TrackedHeap.RangeSpec =
-            rangeSpecStr?.let {
-                TrackedHeap.RangeSpec.fromString(trackedHeap, it)
-            } ?: TrackedHeap.RangeSpec(
-                trackedHeap,
-                IntRange(0, trackedHeap.heapOperations.size - 1),
-            )
-
+        val range = TrackedHeap.Range.fromString(trackedHeap, rangeSpecStr)
         println("Plot:")
         println(
-            rangeSpec.trackedHeap.plotGraph(
-                rangeSpec.range,
+            range.trackedHeap.plotGraph(
+                range.range,
                 TrackedHeap.PlotDimensions(columns, rows),
                 '#',
             ),
@@ -281,7 +273,7 @@ class HeapDB(
         trackedHeap: TrackedHeap,
         rangeSpec: String,
     ): TrackedHeap {
-        val diffSpec = TrackedHeap.RangeSpec.fromString(trackedHeap, rangeSpec)
+        val diffSpec = TrackedHeap.Range.fromString(trackedHeap, rangeSpec)
         println("Truncating heap to $diffSpec...")
         return TrackedHeap.truncate(diffSpec)
     }
@@ -394,7 +386,7 @@ class InteractiveMode(
             heapDB.doPrint(
                 it,
                 requiredIntArg(args, 1, "heap-operation-sequence-number"),
-                true,
+                optionalArg(args, 2) in setOf("bt", "backtrace"),
             )
         }
     }
@@ -410,7 +402,7 @@ class InteractiveMode(
         heapDB.trackedHeap?.also {
             heapDB.doPlot(
                 it,
-                requiredArg(args, 1, "range-spec"),
+                optionalArg(args, 1) ?: TrackedHeap.Range.wholeRangeInclusiveStr(it),
                 optionalIntArg(args, 2, "columns", DEFAULT_PLOT_COLUMNS),
                 optionalIntArg(args, 3, "rows", DEFAULT_PLOT_COLUMNS),
             )

@@ -7,6 +7,9 @@ import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.min
 
+const val MIN_GRAPH_COLUMNS = 8
+const val MIN_GRAPH_ROWS = 8
+
 @Suppress("TooManyFunctions")
 data class TrackedHeap(
     val heapOperations: List<HeapOperation>,
@@ -48,27 +51,93 @@ data class TrackedHeap(
         fun build(): TrackedHeap = TrackedHeap(heapOperations, markers)
     }
 
-    data class RangeSpec(
+    private fun createIntRange(spec: String): IntRange {
+        val fromToSpec = spec.split("..")
+        if (fromToSpec.size != 2) {
+            throw ParseException("Invalid diff spec $spec. Expected format [from]..[to]", 0)
+        }
+        val fromPosition =
+            rangeStartPosition(fromToSpec[0])
+                ?: throw ParseException("Invalid from-position in diff spec $spec.", 1)
+
+        val toPosition =
+            rangeEndPosition(fromToSpec[1])
+                ?: throw ParseException("Invalid to-position in diff spec $spec.", 2)
+
+        return IntRange(fromPosition, toPosition)
+    }
+
+    @ConsistentCopyVisibility
+    data class DiffRange private constructor(
         val trackedHeap: TrackedHeap,
         val range: IntRange,
     ) {
         companion object {
             fun fromString(
                 trackedHeap: TrackedHeap,
-                specStr: String,
-            ): RangeSpec {
-                val fromToSpec = specStr.split("..")
-                if (fromToSpec.size != 2) {
-                    throw ParseException("Invalid diff spec $specStr. Expected format [from]..[to]", 0)
+                spec: String,
+            ): DiffRange {
+                fun checkPositionValid(
+                    position: Int,
+                    attributeName: String,
+                ) {
+                    if (position < 0 ||
+                        trackedHeap.heapOperations.size < position
+                    ) {
+                        throw ParseException("Invalid $attributeName $position in diff spec $spec", 0)
+                    }
                 }
-                val fromPosition =
-                    trackedHeap.rangeStartPosition(fromToSpec[0])
-                        ?: throw ParseException("Invalid from position in diff spec $specStr.", 0)
-                val toPosition =
-                    trackedHeap.rangeEndPosition(fromToSpec[1])
-                        ?: throw ParseException("Invalid to position in diff spec $specStr.", 1)
-                val range = IntRange(fromPosition, toPosition)
-                return TrackedHeap.RangeSpec(trackedHeap, range)
+
+                val range = trackedHeap.createIntRange(spec)
+                checkPositionValid(range.first, "from-position")
+                checkPositionValid(range.last, "to-position")
+                return DiffRange(trackedHeap, range)
+            }
+        }
+    }
+
+    @ConsistentCopyVisibility
+    data class Range private constructor(
+        val trackedHeap: TrackedHeap,
+        val range: IntRange,
+    ) {
+        companion object {
+            fun wholeRangeStr(trackedHeap: TrackedHeap) = "0..${trackedHeap.heapOperations.size}"
+
+            fun wholeRangeInclusiveStr(trackedHeap: TrackedHeap) = "0..${trackedHeap.heapOperations.size - 1}"
+
+            fun fromIntRange(
+                trackedHeap: TrackedHeap,
+                range: IntRange,
+            ): Range {
+                fun checkPositionValid(
+                    position: Int?,
+                    attributeName: String,
+                ) {
+                    position ?: throw ParseException("Invalid $attributeName in range.", 1)
+
+                    if (position < 0 ||
+                        trackedHeap.heapOperations.size <= position
+                    ) {
+                        throw ParseException("Invalid $attributeName $position in range", 0)
+                    }
+                }
+
+                checkPositionValid(range.first, "from-position")
+                checkPositionValid(range.last, "to-position")
+                return TrackedHeap.Range(trackedHeap, range)
+            }
+
+            fun fromString(
+                trackedHeap: TrackedHeap,
+                spec: String,
+            ): Range {
+                val fromToSpec = spec.split("..")
+                if (fromToSpec.size != 2) {
+                    throw ParseException("Invalid diff spec $spec. Expected format [from]..[to]", 0)
+                }
+                val range = trackedHeap.createIntRange(spec)
+                return fromIntRange(trackedHeap, range)
             }
         }
     }
@@ -185,13 +254,23 @@ data class TrackedHeap(
         dimensions: PlotDimensions,
         symbol: Char,
     ): String {
-        val heapSizes = mutableListOf<Int>()
-        var currentHeapSize = 0
+        require(0 <= operationRange.first)
+        require(operationRange.first <= operationRange.last)
+        require(operationRange.last < heapOperations.size)
+        require(MIN_GRAPH_COLUMNS <= dimensions.columns)
+        require(MIN_GRAPH_ROWS <= dimensions.rows)
+
+        val postOperationHeapSizes = mutableListOf<Int>()
+        var postOperationHeapSize = 0
         heapOperations.forEach {
-            currentHeapSize += if (it.kind == HeapOperationKind.Alloc) it.size else -it.size
-            heapSizes.addLast(currentHeapSize)
+            if (it.kind == HeapOperationKind.Alloc) {
+                postOperationHeapSize += it.size
+            } else {
+                postOperationHeapSize -= it.size
+            }
+            postOperationHeapSizes.addLast(postOperationHeapSize)
         }
-        var maxHeapSize = heapSizes.maxOrNull() ?: 0
+        val maxHeapSize = postOperationHeapSizes.maxOrNull() ?: 0
         val builder = StringBuilder()
         builder.appendLine(plotHeading(dimensions.columns, maxHeapSize))
 
@@ -202,7 +281,7 @@ data class TrackedHeap(
         }
         val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
         for (rowSeqNo in operationRange step operationsPerRow) {
-            val numSymbols = (heapSizes[rowSeqNo] * dimensions.columns) / maxHeapSize
+            val numSymbols = (postOperationHeapSizes[rowSeqNo] * dimensions.columns) / maxHeapSize
             builder.append(
                 plotGraphRow(
                     RowOperations(
@@ -252,9 +331,9 @@ data class TrackedHeap(
             return builder.build()
         }
 
-        fun truncate(rangeSpec: RangeSpec): TrackedHeap {
-            val trackedHeap = rangeSpec.trackedHeap
-            val truncatedHeapOperations = trackedHeap.heapOperations.slice(rangeSpec.range)
+        fun truncate(range: Range): TrackedHeap {
+            val trackedHeap = range.trackedHeap
+            val truncatedHeapOperations = trackedHeap.heapOperations.slice(range.range)
             return TrackedHeap(truncatedHeapOperations, trackedHeap.markers)
         }
 

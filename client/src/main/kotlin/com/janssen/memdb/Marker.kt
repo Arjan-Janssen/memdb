@@ -4,6 +4,8 @@ data class Marker(
     val firstOperationSeqNo: Int,
     val name: String,
 ) {
+    override fun toString() = "marker[name: $name, seq-no: $firstOperationSeqNo]"
+
     companion object {
         fun fromProtobuf(proto: heap_tracker.Message.Marker) =
             Marker(
