@@ -180,7 +180,7 @@ data class Diff(
             }
         }
 
-        fun compute(spec: TrackedHeap.DiffSpec): Diff {
+        fun compute(spec: TrackedHeap.RangeSpec): Diff {
             val diffHeap = TrackedHeap.truncate(spec)
             val added = mutableSetOf<HeapOperation>()
             val removed = mutableSetOf<HeapOperation>()

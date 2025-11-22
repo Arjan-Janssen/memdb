@@ -47,7 +47,7 @@ data class TrackedHeap(
         fun build(): TrackedHeap = TrackedHeap(heapOperations, markers)
     }
 
-    data class DiffSpec(
+    data class RangeSpec(
         val trackedHeap: TrackedHeap,
         val range: IntRange,
     ) {
@@ -55,7 +55,7 @@ data class TrackedHeap(
             fun fromString(
                 trackedHeap: TrackedHeap,
                 specStr: String,
-            ): DiffSpec {
+            ): RangeSpec {
                 val fromToSpec = specStr.split("..")
                 if (fromToSpec.size != 2) {
                     throw ParseException("Invalid diff spec $specStr. Expected format [from]..[to]", 0)
@@ -67,7 +67,7 @@ data class TrackedHeap(
                     trackedHeap.markerPosition(fromToSpec[1])
                         ?: throw ParseException("Invalid to position in diff spec $specStr.", 1)
                 val range = IntRange(fromPosition, (toPositionExclusive) - 1)
-                return TrackedHeap.DiffSpec(trackedHeap, range)
+                return TrackedHeap.RangeSpec(trackedHeap, range)
             }
         }
     }
@@ -239,7 +239,7 @@ data class TrackedHeap(
             return builder.build()
         }
 
-        fun truncate(diffSpec: DiffSpec): TrackedHeap {
+        fun truncate(diffSpec: RangeSpec): TrackedHeap {
             val trackedHeap = diffSpec.trackedHeap
             val truncatedHeapOperations = trackedHeap.heapOperations.slice(diffSpec.range)
             return TrackedHeap(truncatedHeapOperations, trackedHeap.markers)
