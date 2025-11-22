@@ -4,6 +4,9 @@ import java.util.Locale
 import kotlin.math.ceil
 
 const val COLUMN_WIDTH = 8
+const val ANSI_RED = "\u001b[31m"
+const val ANSI_GREEN = "\u001b[32m"
+const val ANSI_WHITE = "\u001b[37m"
 
 data class Diff(
     val added: List<HeapOperation>,
@@ -112,6 +115,7 @@ data class Diff(
             builder: StringBuilder,
             allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
             cellAddressRange: IntRange,
+            symbol: Char,
         ): Boolean {
             advanceItToCell(allocIt, cellAddressRange.start)
             if (!allocIt.hasNext()) {
@@ -121,6 +125,12 @@ data class Diff(
             if (!inAddressRange(alloc, cellAddressRange)) {
                 return false
             }
+            if (symbol == '+') {
+                builder.append(ANSI_GREEN)
+            } else {
+                builder.append(ANSI_RED)
+            }
+
             builder.append(
                 String.format(
                     Locale.getDefault(),
@@ -128,7 +138,8 @@ data class Diff(
                     alloc.seqNo,
                 ),
             )
-            builder.append('+')
+            builder.append(symbol)
+            builder.append(ANSI_WHITE)
             return true
         }
 
@@ -148,10 +159,10 @@ data class Diff(
                         rowStartAddress + addressRangePerCell * i,
                         rowStartAddress + addressRangePerCell * (i + 1) - 1,
                     )
-                if (tryPlotCellAlloc(builder, addedAllocIt, cellAddressRange)) {
+                if (tryPlotCellAlloc(builder, addedAllocIt, cellAddressRange, '+')) {
                     continue
                 }
-                if (tryPlotCellAlloc(builder, removedAllocIt, cellAddressRange)) {
+                if (tryPlotCellAlloc(builder, removedAllocIt, cellAddressRange, '-')) {
                     continue
                 }
 

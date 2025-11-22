@@ -18,10 +18,84 @@ const val DEFAULT_PLOT_LAYOUT_ROWS = 40
 const val APP_NAME = "memdb"
 
 @Suppress("TooManyFunctions")
-class HeapDB {
-    @Suppress("LongMethod")
+class HeapDB(
+    var trackedHeap: TrackedHeap? = null,
+    var diff: Diff? = null,
+) {
+    @Suppress("LongMethod", "ComplexMethod")
     @OptIn(ExperimentalCli::class)
     fun run(args: Array<String>) {
+        @OptIn(ExperimentalCli::class)
+        class PlotCommand(
+            val heapDB: HeapDB,
+        ) : Subcommand(
+                "plot",
+                "Plot tracked heap",
+            ) {
+            val columns by option(
+                ArgType.Int,
+                "columns",
+                "col",
+                "Columns in characters",
+            ).default(DEFAULT_PLOT_COLUMNS)
+            val rows by option(
+                ArgType.Int,
+                "rows",
+                shortName = "row",
+                description = "Rows in characters",
+            ).default(
+                DEFAULT_PLOT_ROWS,
+            )
+            val range by option(
+                ArgType.String,
+                "range",
+                shortName = "r",
+                description = "Limit plot to range",
+            )
+
+            override fun execute() {
+                heapDB.trackedHeap?.let {
+                    heapDB.doPlot(
+                        it,
+                        range,
+                        columns,
+                        rows,
+                    )
+                }
+            }
+        }
+
+        @OptIn(ExperimentalCli::class)
+        class PlotLayoutCommand(
+            val heapDB: HeapDB,
+        ) : Subcommand(
+                "plot-layout",
+                "Plot diff memory layout",
+            ) {
+            val columns by option(
+                ArgType.Int,
+                "columns",
+                "col",
+                "Columns in characters",
+            ).default(DEFAULT_PLOT_LAYOUT_COLUMNS)
+            val rows by option(
+                ArgType.Int,
+                "rows",
+                shortName = "row",
+                description = "Rows in characters",
+            ).default(DEFAULT_PLOT_LAYOUT_ROWS)
+
+            override fun execute() {
+                heapDB.diff?.let {
+                    doPlotPlayout(
+                        it,
+                        columns,
+                        rows,
+                    )
+                }
+            }
+        }
+
         val parser = ArgParser(APP_NAME)
         val captureOption by parser.option(
             ArgType.String,
@@ -81,65 +155,55 @@ class HeapDB {
                 description = "Run in interactive mode",
             ).default(false)
 
-        val plotCommand = PlotCommand()
-        val plotLayoutCommand = PlotLayoutCommand()
+        val plotCommand = PlotCommand(this)
+        val plotLayoutCommand = PlotLayoutCommand(this)
         parser.subcommands(plotCommand, plotLayoutCommand)
         parser.parse(args)
 
-        var trackedHeap: TrackedHeap? = null
         captureOption?.let {
-            trackedHeap = doCapture(it)
+            doCapture(it)
         }
         loadOption?.let {
-            trackedHeap = doLoad(it)
+            doLoad(it)
         }
         if (trackedHeap == null) {
             println("No tracked heap. Closing.")
             return
         }
-        if (plotCommand.enabled) {
-            doPlot(
-                trackedHeap,
-                plotCommand.range,
-                plotCommand.columns,
-                plotCommand.rows,
-            )
-        }
-        if (plotLayoutCommand.enabled) {
-            val diffSpec = diffOption ?: "0..${trackedHeap.heapOperations.size - 1}"
-            doPlotPlayout(
-                trackedHeap,
-                diffSpec,
-                plotLayoutCommand.columns,
-                plotLayoutCommand.rows,
-            )
-        }
         if (histogramOption) {
-            doHistogram(trackedHeap, !noBucketsOption)
+            trackedHeap?.let {
+                doHistogram(it, !noBucketsOption)
+            }
         }
-        var diff: Diff? = null
         diffOption?.let {
-            diff = doDiff(trackedHeap, it)
+            trackedHeap?.let { heap ->
+                doDiff(heap, it)
+            }
         }
         printOption?.let {
-            doPrint(trackedHeap, it, true)
+            trackedHeap?.let { heap ->
+                doPrint(heap, it, true)
+            }
         }
-        var exportHeap = trackedHeap
         truncateOption?.let {
-            exportHeap = doTruncate(trackedHeap, it)
+            trackedHeap?.let { heap ->
+                doTruncate(heap, it)
+            }
         }
-        exportHeap?.let { saveHeap ->
-            saveOption?.let { filePath ->
-                doSave(saveHeap, filePath)
+        saveOption?.let { filePath ->
+            trackedHeap?.let { heap ->
+                doSave(heap, filePath)
             }
         }
         if (interactiveOption) {
-            val interactiveMode = InteractiveMode(this, exportHeap, diff)
-            interactiveMode.run()
+            trackedHeap?.let { heap ->
+                val interactiveMode = InteractiveMode(this)
+                interactiveMode.run()
+            }
         }
     }
 
-    fun doCapture(connectionString: String): TrackedHeap? {
+    fun doCapture(connectionString: String) {
         fun parseConnectionString(connectionString: String): Pair<String, Int> {
             val splitConnectionString = connectionString.split(":")
             val hostName = if (splitConnectionString.isNotEmpty()) splitConnectionString[0] else "localhost"
@@ -151,34 +215,30 @@ class HeapDB {
 
         try {
             val client = Client()
-            return client.capture(host, port)
+            trackedHeap = client.capture(host, port)
         } catch (e: ConnectException) {
             println("Unable to connect to server. ${e.message}")
         } catch (e: UnknownHostException) {
             println("Unknown host: ${e.message}")
         }
-
-        return null
     }
 
-    fun doLoad(filePath: String): TrackedHeap? {
+    fun doLoad(filePath: String) {
         println("Loading tracked heap from $filePath...")
         try {
-            return TrackedHeap.loadFromFile(filePath)
+            trackedHeap = TrackedHeap.loadFromFile(filePath)
         } catch (e: FileNotFoundException) {
             println("File not found. ${e.message}")
         }
-        return null
     }
 
     fun doDiff(
         trackedHeap: TrackedHeap,
         specStr: String,
-    ): Diff {
+    ) {
         val diffSpec = TrackedHeap.RangeSpec.fromString(trackedHeap, specStr)
-        val diff = Diff.compute(diffSpec)
         println("diff from position ${diffSpec.range.start} to ${diffSpec.range.endInclusive}:\n$diff")
-        return diff
+        diff = Diff.compute(diffSpec)
     }
 
     fun doPlot(
@@ -265,69 +325,9 @@ class HeapDB {
     }
 }
 
-@OptIn(ExperimentalCli::class)
-class PlotCommand :
-    Subcommand(
-        "plot",
-        "Plot tracked heap",
-    ) {
-    val columns by option(
-        ArgType.Int,
-        "columns",
-        "col",
-        "Columns in characters",
-    ).default(DEFAULT_PLOT_COLUMNS)
-    val rows by option(
-        ArgType.Int,
-        "rows",
-        shortName = "row",
-        description = "Rows in characters",
-    ).default(
-        DEFAULT_PLOT_ROWS,
-    )
-    val range by option(
-        ArgType.String,
-        "range",
-        shortName = "r",
-        description = "Limit plot to range",
-    )
-    var enabled = false
-
-    override fun execute() {
-        enabled = true
-    }
-}
-
-@OptIn(ExperimentalCli::class)
-class PlotLayoutCommand :
-    Subcommand(
-        "plot-layout",
-        "Plot diff memory layout",
-    ) {
-    val columns by option(
-        ArgType.Int,
-        "columns",
-        "col",
-        "Columns in characters",
-    ).default(DEFAULT_PLOT_LAYOUT_COLUMNS)
-    val rows by option(
-        ArgType.Int,
-        "rows",
-        shortName = "row",
-        description = "Rows in characters",
-    ).default(DEFAULT_PLOT_LAYOUT_ROWS)
-    var enabled = false
-
-    override fun execute() {
-        enabled = true
-    }
-}
-
 @Suppress("TooManyFunctions")
 class InteractiveMode(
     val heapDB: HeapDB,
-    var trackedHeap: TrackedHeap?,
-    var diff: Diff?,
 ) {
     private fun printNoTrackedHeap() {
         println("No tracked heap available.")
@@ -381,28 +381,32 @@ class InteractiveMode(
     }
 
     private fun runLoadCommand(args: List<String>) {
-        trackedHeap = heapDB.doLoad(requiredArg(args, 1, "file-path"))
+        heapDB.doLoad(requiredArg(args, 1, "file-path"))
     }
 
     private fun runSaveCommand(args: List<String>) {
-        trackedHeap = heapDB.doLoad(requiredArg(args, 1, "file-path"))
+        heapDB.doLoad(requiredArg(args, 1, "file-path"))
     }
 
     private fun runPrintCommand(args: List<String>) {
-        trackedHeap?.also {
-            heapDB.doPrint(it, requiredIntArg(args, 1, "heap-operation-sequence-number"), true)
-        } ?: printNoTrackedHeap()
+        heapDB.trackedHeap?.let {
+            heapDB.doPrint(
+                it,
+                requiredIntArg(args, 1, "heap-operation-sequence-number"),
+                true,
+            )
+        }
     }
 
     private fun runDiffCommand(args: List<String>) {
-        trackedHeap?.also {
-            diff = heapDB.doDiff(it, requiredArg(args, 1, "diff-spec"))
+        heapDB.trackedHeap?.also {
+            heapDB.doDiff(it, requiredArg(args, 1, "diff-spec"))
         } ?: printNoTrackedHeap()
     }
 
     @Suppress("MagicNumber")
     private fun runPlotCommand(args: List<String>) {
-        trackedHeap?.also {
+        heapDB.trackedHeap?.also {
             heapDB.doPlot(
                 it,
                 requiredArg(args, 1, "range-spec"),
@@ -413,11 +417,11 @@ class InteractiveMode(
     }
 
     private fun runPlotLayoutCommand(args: List<String>) {
-        diff?.let {
+        heapDB.diff?.also {
             heapDB.doPlotPlayout(
                 it,
-                optionalIntArg(args, 1, "columns", DEFAULT_PLOT_COLUMNS),
-                optionalIntArg(args, 2, "rows", DEFAULT_PLOT_COLUMNS),
+                optionalIntArg(args, 1, "columns", DEFAULT_PLOT_LAYOUT_COLUMNS),
+                optionalIntArg(args, 2, "rows", DEFAULT_PLOT_LAYOUT_ROWS),
             )
         } ?: printNoDiff()
     }
