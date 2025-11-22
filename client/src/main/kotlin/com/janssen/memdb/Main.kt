@@ -11,7 +11,7 @@ import java.net.UnknownHostException
 import java.text.ParseException
 
 const val DEFAULT_CONNECTION_PORT = 8989
-const val DEFAULT_PLOT_COLUMNS = 80
+const val DEFAULT_PLOT_COLUMNS = 100
 const val DEFAULT_PLOT_ROWS = 40
 const val DEFAULT_PLOT_LAYOUT_COLUMNS = 15
 const val DEFAULT_PLOT_LAYOUT_ROWS = 40
@@ -373,12 +373,19 @@ class InteractiveMode(
             ?: throw ParseException("Expected integer argument $name at position $position", position)
     }
 
+    @Suppress("UnusedParameter")
+    private fun runQuitCommand(args: List<String>) {
+        shouldQuit = true
+    }
+
     private fun runLoadCommand(args: List<String>) {
         heapDB.doLoad(requiredArg(args, 1, "file-path"))
     }
 
     private fun runSaveCommand(args: List<String>) {
-        heapDB.doLoad(requiredArg(args, 1, "file-path"))
+        heapDB.trackedHeap?.let {
+            heapDB.doSave(it, requiredArg(args, 1, "file-path"))
+        }
     }
 
     private fun runPrintCommand(args: List<String>) {
@@ -394,6 +401,12 @@ class InteractiveMode(
     private fun runDiffCommand(args: List<String>) {
         heapDB.trackedHeap?.also {
             heapDB.doDiff(it, requiredArg(args, 1, "diff-spec"))
+        } ?: printNoTrackedHeap()
+    }
+
+    private fun runHistogramCommand(args: List<String>) {
+        heapDB.trackedHeap?.also {
+            heapDB.doHistogram(it, optionalArg(args, 1) !in setOf("no-buckets", "nb"))
         } ?: printNoTrackedHeap()
     }
 
@@ -419,22 +432,100 @@ class InteractiveMode(
         } ?: printNoDiff()
     }
 
+    @Suppress("UnusedParameter")
+    private fun runHelpCommand(args: List<String>) {
+        println("Usage:")
+        commands.forEach {
+            println("${it.name}, ${it.shortName} -> ${it.help}")
+        }
+    }
+
+    data class Command(
+        val name: String,
+        val shortName: String,
+        val help: String,
+        val run: (List<String>) -> Unit,
+    )
+
+    private val commands =
+        listOf(
+            Command(
+                "quit",
+                "q",
+                "Quit application",
+            ) {
+                runQuitCommand(it)
+            },
+            Command(
+                "load",
+                "l",
+                "Load tracked heap [file name]",
+            ) {
+                runLoadCommand(it)
+            },
+            Command(
+                "save",
+                "s",
+                "Save tracked heap [file name]",
+            ) {
+                runSaveCommand(it)
+            },
+            Command(
+                "print",
+                "p",
+                "Print heap operation [sequence number] ?[bt | backtrace]",
+            ) {
+                runPrintCommand(it)
+            },
+            Command(
+                "plot",
+                "plot",
+                "Plot heap memory usage ?[range-spec] ?[columns] ?[rows]",
+            ) {
+                runPlotCommand(it)
+            },
+            Command(
+                "plot-layout",
+                "plot-layout",
+                "Plot heap memory layout ?[columns] ?[rows]",
+            ) {
+                runPlotLayoutCommand(it)
+            },
+            Command(
+                "diff",
+                "d",
+                "Diff between two pre-operation states of the heap [from-sequence-number..to-sequence-number]",
+            ) {
+                runDiffCommand(it)
+            },
+            Command(
+                "histogram",
+                "hist",
+                "Print histogram of allocations by size ?[no-buckets | nb]",
+            ) {
+                runHistogramCommand(it)
+            },
+            Command(
+                "help",
+                "h",
+                "Usage information",
+            ) {
+                runHelpCommand(it)
+            },
+        )
+
     private fun parseAndRun(args: List<String>) {
         if (args.isEmpty()) {
             return
         }
         val command = args[0]
         try {
-            when (command) {
-                "q", "quit" -> shouldQuit = true
-                "l", "load" -> runLoadCommand(args)
-                "s", "save" -> runSaveCommand(args)
-                "d", "diff" -> runDiffCommand(args)
-                "p", "print" -> runPrintCommand(args)
-                "plot" -> runPlotCommand(args)
-                "plot-layout" -> runPlotLayoutCommand(args)
-                else -> println("Unknown command: $command")
-            }
+            commands
+                .find {
+                    it.shortName == command || it.name == command
+                }?.also {
+                    it.run(args)
+                } ?: println("Unknown command: $command")
         } catch (e: ParseException) {
             println("Invalid command. ${e.message}")
         }
@@ -442,6 +533,7 @@ class InteractiveMode(
 
     fun run() {
         println("Interactive mode:")
+        println("type h<enter> for help")
         try {
             while (!shouldQuit) {
                 print("> ")

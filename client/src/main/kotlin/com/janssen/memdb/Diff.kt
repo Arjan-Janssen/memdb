@@ -7,9 +7,12 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
-const val COLUMN_WIDTH = 8
+const val GRAPH_COLUMN_WIDTH = 8
 
-data class Diff(
+typealias HeapOperationIterator = PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>
+
+@ExposedCopyVisibility
+data class Diff private constructor(
     val added: List<HeapOperation>,
     val removed: List<HeapOperation>,
 ) {
@@ -108,7 +111,7 @@ data class Diff(
         }
 
         private fun advanceItToCell(
-            allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
+            allocIt: HeapOperationIterator,
             cellStartAddress: Int,
         ) {
             while (allocIt.hasNext() &&
@@ -131,7 +134,7 @@ data class Diff(
 
         private fun tryPlotCellAlloc(
             builder: StringBuilder,
-            allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
+            allocIt: HeapOperationIterator,
             cellAddressRange: IntRange,
             added: Boolean,
         ): Boolean {
@@ -152,7 +155,7 @@ data class Diff(
             builder.append(
                 String.format(
                     Locale.getDefault(),
-                    "%${COLUMN_WIDTH - 1}d",
+                    "%${GRAPH_COLUMN_WIDTH - 1}d",
                     alloc.seqNo,
                 ),
             )
@@ -166,8 +169,8 @@ data class Diff(
             rowStartAddress: Int,
             addressRangePerCell: Int,
             columns: Int,
-            addedAllocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
-            removedAllocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
+            addedAllocIt: HeapOperationIterator,
+            removedAllocIt: HeapOperationIterator,
         ): String {
             val builder = StringBuilder()
             builder.append("${rowStartAddress.toInt().toHexString()}: ")
@@ -184,7 +187,7 @@ data class Diff(
                     continue
                 }
 
-                repeat(COLUMN_WIDTH - 1) {
+                repeat(GRAPH_COLUMN_WIDTH - 1) {
                     builder.append(" ")
                 }
                 builder.append('.')
