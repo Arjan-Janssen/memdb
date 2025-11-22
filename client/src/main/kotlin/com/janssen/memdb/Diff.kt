@@ -115,7 +115,7 @@ data class Diff(
             builder: StringBuilder,
             allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
             cellAddressRange: IntRange,
-            symbol: Char,
+            added: Boolean,
         ): Boolean {
             advanceItToCell(allocIt, cellAddressRange.start)
             if (!allocIt.hasNext()) {
@@ -125,7 +125,7 @@ data class Diff(
             if (!inAddressRange(alloc, cellAddressRange)) {
                 return false
             }
-            if (symbol == '+') {
+            if (added) {
                 builder.append(ANSI_GREEN)
             } else {
                 builder.append(ANSI_RED)
@@ -138,7 +138,7 @@ data class Diff(
                     alloc.seqNo,
                 ),
             )
-            builder.append(symbol)
+            builder.append(if (added) '+' else '-')
             builder.append(ANSI_WHITE)
             return true
         }
@@ -159,10 +159,10 @@ data class Diff(
                         rowStartAddress + addressRangePerCell * i,
                         rowStartAddress + addressRangePerCell * (i + 1) - 1,
                     )
-                if (tryPlotCellAlloc(builder, addedAllocIt, cellAddressRange, '+')) {
+                if (tryPlotCellAlloc(builder, addedAllocIt, cellAddressRange, true)) {
                     continue
                 }
-                if (tryPlotCellAlloc(builder, removedAllocIt, cellAddressRange, '-')) {
+                if (tryPlotCellAlloc(builder, removedAllocIt, cellAddressRange, false)) {
                     continue
                 }
 
