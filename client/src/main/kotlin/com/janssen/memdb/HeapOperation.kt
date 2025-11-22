@@ -43,14 +43,12 @@ data class HeapOperation(
             this.size = size
         }
 
-        fun dealloc(
-            address: Int,
-            size: Int,
-        ) = apply {
-            this.kind = HeapOperationKind.Dealloc
-            this.address = address
-            this.size = size
-        }
+        fun dealloc(address: Int) =
+            apply {
+                this.kind = HeapOperationKind.Dealloc
+                this.address = address
+                this.size = 0
+            }
 
         fun threadId(threadId: Int) =
             apply {
