@@ -67,7 +67,7 @@ data class Diff(
     }
 
     companion object {
-        fun ceilToMultiple(
+        private fun ceilToMultiple(
             value: Int,
             multiple: Int,
         ) = ceil(value.toDouble() / multiple).toInt() * multiple
@@ -86,7 +86,7 @@ data class Diff(
             return startWithinCell || endWithinCell || rangeOverlapsCell
         }
 
-        fun advanceItToCell(
+        private fun advanceItToCell(
             allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
             cellStartAddress: Int,
         ) {
@@ -108,7 +108,7 @@ data class Diff(
             }
         }
 
-        fun tryPlotCellAlloc(
+        private fun tryPlotCellAlloc(
             builder: StringBuilder,
             allocIt: PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>,
             cellAddressRange: IntRange,
@@ -133,7 +133,7 @@ data class Diff(
         }
 
         @Suppress("LoopWithTooManyJumpStatements")
-        fun plotRow(
+        private fun plotRow(
             rowStartAddress: Int,
             addressRangePerCell: Int,
             columns: Int,
@@ -164,7 +164,7 @@ data class Diff(
             return builder.toString()
         }
 
-        fun removeAllocation(
+        private fun removeAllocation(
             added: MutableSet<HeapOperation>,
             removed: MutableSet<HeapOperation>,
             dealloc: HeapOperation,

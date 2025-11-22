@@ -37,32 +37,35 @@ data class HeapOperation(
         fun alloc(
             address: Int,
             size: Int,
-        ): Builder {
+        ) = apply {
             this.kind = HeapOperationKind.Alloc
             this.address = address
             this.size = size
-            return this
         }
 
         fun dealloc(
             address: Int,
             size: Int,
-        ): Builder {
+        ) = apply {
             this.kind = HeapOperationKind.Dealloc
             this.address = address
-            this.size = 0
-            return this
+            this.size = size
         }
 
-        fun threadId(threadId: Int): Builder {
-            this.threadId = threadId
-            return this
-        }
+        fun threadId(threadId: Int) =
+            apply {
+                this.threadId = threadId
+            }
 
-        fun sinceServerStart(duration: Duration): Builder {
-            this.durationSinceServerStart = duration
-            return this
-        }
+        fun sinceServerStart(duration: Duration) =
+            apply {
+                this.durationSinceServerStart = duration
+            }
+
+        fun backtrace(backtrace: String) =
+            apply {
+                this.backtrace = backtrace
+            }
 
         var kind = HeapOperationKind.Alloc
         var durationSinceServerStart = Duration.ZERO
