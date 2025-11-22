@@ -16,8 +16,19 @@ const val DEFAULT_PLOT_ROWS = 40
 const val DEFAULT_PLOT_LAYOUT_COLUMNS = 15
 const val DEFAULT_PLOT_LAYOUT_ROWS = 40
 const val APP_NAME = "memdb"
+const val NO_DIFF = "<no diff>"
 
-@Suppress("TooManyFunctions")
+enum class AnsiColor(
+    val code: String,
+) {
+    RED("\u001b[31m"),
+    GREEN("\u001b[32m"),
+    RESET("\u001b[37m"),
+    ;
+
+    override fun toString(): String = code
+}
+
 class HeapDB(
     var trackedHeap: TrackedHeap? = null,
     var diff: Diff? = null,
@@ -237,8 +248,9 @@ class HeapDB(
         specStr: String,
     ) {
         val diffSpec = TrackedHeap.RangeSpec.fromString(trackedHeap, specStr)
-        println("diff from position ${diffSpec.range.start} to ${diffSpec.range.endInclusive}:\n$diff")
         diff = Diff.compute(diffSpec)
+        println("Diff:")
+        println(diff.toString())
     }
 
     fun doPlot(
@@ -303,17 +315,6 @@ class HeapDB(
     ) {
         println("Layout plot:")
         println(diff.plot(TrackedHeap.PlotDimensions(columns, rows)))
-    }
-
-    fun doPlotPlayout(
-        trackedHeap: TrackedHeap,
-        diffSpecStr: String,
-        columns: Int,
-        rows: Int,
-    ) {
-        val diffSpec = TrackedHeap.RangeSpec.fromString(trackedHeap, diffSpecStr)
-        val diff = Diff.compute(diffSpec)
-        doPlotPlayout(diff, columns, rows)
     }
 
     fun doSave(

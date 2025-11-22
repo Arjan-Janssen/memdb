@@ -77,20 +77,17 @@ data class HeapOperation(
 
     fun toString(showBacktrace: Boolean) =
         StringBuilder()
-            .appendLine("heap operation[")
-            .appendLine("seq no: $seqNo")
-            .appendLine("kind: $kind")
-            .appendLine("duration: $durationSinceServerStart")
-            .appendLine(
+            .append(if (kind == HeapOperationKind.Alloc) "alloc[" else "dealloc[")
+            .append("seq no: $seqNo, kind: $kind, duration: $durationSinceServerStart, ")
+            .append(
                 String.format(
                     Locale.getDefault(),
-                    "address: %s",
+                    "address: %s, ",
                     address.toHexString(),
                 ),
-            ).appendLine("size:  $size")
-            .appendLine("thread id: $threadId")
-            .appendLine("backtrace: ${if (showBacktrace) backtrace else "[not shown"}")
-            .appendLine("]")
+            ).append("size: $size, thread id: $threadId, ")
+            .append("backtrace: ${if (showBacktrace) backtrace else "(hidden)"}")
+            .append("]")
             .toString()
 
     companion object {

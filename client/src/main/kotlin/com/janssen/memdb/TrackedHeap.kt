@@ -7,6 +7,7 @@ import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.min
 
+@Suppress("TooManyFunctions")
 data class TrackedHeap(
     val heapOperations: List<HeapOperation>,
     val markers: List<Marker>,
@@ -61,12 +62,12 @@ data class TrackedHeap(
                     throw ParseException("Invalid diff spec $specStr. Expected format [from]..[to]", 0)
                 }
                 val fromPosition =
-                    trackedHeap.markerPosition(fromToSpec[0])
+                    trackedHeap.rangeStartPosition(fromToSpec[0])
                         ?: throw ParseException("Invalid from position in diff spec $specStr.", 0)
-                val toPositionExclusive =
-                    trackedHeap.markerPosition(fromToSpec[1])
+                val toPosition =
+                    trackedHeap.rangeEndPosition(fromToSpec[1])
                         ?: throw ParseException("Invalid to position in diff spec $specStr.", 1)
-                val range = IntRange(fromPosition, (toPositionExclusive) - 1)
+                val range = IntRange(fromPosition, toPosition)
                 return TrackedHeap.RangeSpec(trackedHeap, range)
             }
         }
@@ -74,15 +75,27 @@ data class TrackedHeap(
 
     fun marker(firstOperationSeqNo: Int): Marker? = markers.find { it.firstOperationSeqNo == firstOperationSeqNo }
 
-    fun markerPosition(markerOrIndex: String): Int? {
-        val marker =
-            markers.find {
-                it.name == markerOrIndex
+    fun markerSeqNo(markerName: String): Int? =
+        markers
+            .find {
+                it.name == markerName
+            }?.firstOperationSeqNo
+
+    fun rangeStartPosition(rangeSpecStart: String): Int? {
+        var startPosition = rangeSpecStart.toIntOrNull()
+        return startPosition ?: markerSeqNo(rangeSpecStart)
+    }
+
+    fun rangeEndPosition(rangeSpecEnd: String): Int? {
+        fun markerEndPosition(markerName: String): Int? {
+            markerSeqNo(markerName)?.let {
+                return it - 1
             }
-        marker?.let {
-            return marker.firstOperationSeqNo
+            return null
         }
-        return markerOrIndex.toIntOrNull()
+
+        var endPosition = rangeSpecEnd.toIntOrNull()
+        return endPosition ?: markerEndPosition(rangeSpecEnd)
     }
 
     override fun toString(): String {
@@ -239,9 +252,9 @@ data class TrackedHeap(
             return builder.build()
         }
 
-        fun truncate(diffSpec: RangeSpec): TrackedHeap {
-            val trackedHeap = diffSpec.trackedHeap
-            val truncatedHeapOperations = trackedHeap.heapOperations.slice(diffSpec.range)
+        fun truncate(rangeSpec: RangeSpec): TrackedHeap {
+            val trackedHeap = rangeSpec.trackedHeap
+            val truncatedHeapOperations = trackedHeap.heapOperations.slice(rangeSpec.range)
             return TrackedHeap(truncatedHeapOperations, trackedHeap.markers)
         }
 
