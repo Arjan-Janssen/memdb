@@ -58,11 +58,11 @@ data class TrackedHeap(
         }
         val fromPosition =
             rangeStartPosition(fromToSpec[0])
-                ?: throw ParseException("Invalid from-position in diff spec $spec.", 1)
+                ?: throw ParseException("Invalid from-position in diff spec $spec", 1)
 
         val toPosition =
             rangeEndPosition(fromToSpec[1])
-                ?: throw ParseException("Invalid to-position in diff spec $spec.", 2)
+                ?: throw ParseException("Invalid to-position in diff spec $spec", 2)
 
         return IntRange(fromPosition, toPosition)
     }
@@ -112,7 +112,7 @@ data class TrackedHeap(
                     position: Int?,
                     attributeName: String,
                 ) {
-                    position ?: throw ParseException("Invalid $attributeName in range.", 1)
+                    position ?: throw ParseException("Invalid $attributeName in range", 1)
 
                     if (position < 0 ||
                         trackedHeap.heapOperations.size <= position

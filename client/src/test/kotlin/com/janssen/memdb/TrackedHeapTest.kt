@@ -135,15 +135,128 @@ class TrackedHeapRangeTest {
 
     @Test
     fun `fromIntRange with an invalid end position`() {
-        assertThrows(ParseException::class.java) {
-            val trackedHeap = createSimpleTrackedHeap()
-            val invalidRange = IntRange(1, 2)
+        val exception =
+            assertThrows(
+                ParseException::class.java,
+            ) {
+                val trackedHeap = createSimpleTrackedHeap()
+                val invalidRange = IntRange(1, 2)
 
-            TrackedHeap.Range.fromIntRange(
+                TrackedHeap.Range.fromIntRange(
+                    trackedHeap,
+                    invalidRange,
+                )
+            }
+        assertEquals("Invalid to-position 2 in range", exception.message)
+    }
+
+    @Test
+    fun `fromIntRange with an invalid start position`() {
+        val exception =
+            assertThrows(
+                ParseException::class.java,
+            ) {
+                val trackedHeap = createSimpleTrackedHeap()
+                val invalidRange = IntRange(3, 1)
+
+                TrackedHeap.Range.fromIntRange(
+                    trackedHeap,
+                    invalidRange,
+                )
+            }
+        assertEquals("Invalid from-position 3 in range", exception.message)
+    }
+
+    @Test
+    fun `fromString with a valid integer range`() {
+        val trackedHeap = createSimpleTrackedHeap()
+        val expectedFromPosition = 0
+        val expectedToPosition = 1
+        val range =
+            TrackedHeap.Range.fromString(
                 trackedHeap,
-                invalidRange,
+                "$expectedFromPosition..$expectedToPosition",
             )
-        }
+        assertEquals(expectedFromPosition, range.range.first)
+        assertEquals(expectedToPosition, range.range.last)
+    }
+
+    @Test
+    fun `fromString with valid marker names`() {
+        val trackedHeap = createSimpleTrackedHeap()
+        val expectedFromPosition = 0
+        val expectedToPosition = 0
+        val range =
+            TrackedHeap.Range.fromString(
+                trackedHeap,
+                "begin..end",
+            )
+        assertEquals(expectedFromPosition, range.range.first)
+        assertEquals(expectedToPosition, range.range.last)
+    }
+
+    @Test
+    fun `fromString with invalid from-marker`() {
+        val exception =
+            assertThrows(ParseException::class.java) {
+                val trackedHeap = createSimpleTrackedHeap()
+                TrackedHeap.Range.fromString(
+                    trackedHeap,
+                    "arjan..1",
+                )
+            }
+        assertEquals(
+            "Invalid from-position in diff spec arjan..1",
+            exception.message,
+        )
+    }
+
+    @Test
+    fun `fromString with invalid to-marker`() {
+        val exception =
+            assertThrows(ParseException::class.java) {
+                val trackedHeap = createSimpleTrackedHeap()
+                TrackedHeap.Range.fromString(
+                    trackedHeap,
+                    "0..arjan",
+                )
+            }
+        assertEquals(
+            "Invalid to-position in diff spec 0..arjan",
+            exception.message,
+        )
+    }
+
+    @Test
+    fun `fromString with invalid from-position`() {
+        val exception =
+            assertThrows(ParseException::class.java) {
+                val trackedHeap = createSimpleTrackedHeap()
+                TrackedHeap.Range.fromString(
+                    trackedHeap,
+                    "5..0",
+                )
+            }
+        assertEquals(
+            "Invalid from-position 5 in range",
+            exception.message,
+        )
+    }
+
+    @Test
+    fun `fromString with invalid to-position`() {
+        val exception =
+            assertThrows(ParseException::class.java) {
+                val trackedHeap = createSimpleTrackedHeap()
+                TrackedHeap.Range.fromString(
+                    trackedHeap,
+                    "0..5",
+                )
+            }
+        assertEquals(
+            "Invalid to-position 5 in range",
+            exception.message,
+        )
     }
 }
 
