@@ -76,19 +76,21 @@ class HistogramTest {
         assertEquals(2, histogram.frequencyMap[allocSize])
     }
 
+    private fun createTrackedHeapWithIncreasingAllocs(range: IntRange): TrackedHeap {
+        val builder = TrackedHeap.Builder()
+        range.forEachIndexed { index, size ->
+            val address = index * (range.last + 1)
+            builder.addHeapOperation(HeapOperation.Builder().alloc(address, size))
+        }
+        return builder.build()
+    }
+
     @Test
     fun buildWithBucketsReturnsPow2Histogram() {
-        val trackedHeap =
-            TrackedHeap
-                .Builder()
-                .addHeapOperation(HeapOperation.Builder().alloc(0, 1))
-                .addHeapOperation(HeapOperation.Builder().alloc(1, 2))
-                .addHeapOperation(HeapOperation.Builder().alloc(1, 3))
-                .addHeapOperation(HeapOperation.Builder().alloc(1, 4))
-                .addHeapOperation(HeapOperation.Builder().alloc(1, 5))
-                .build()
-
+        val range = IntRange(1, 5)
+        val trackedHeap = createTrackedHeapWithIncreasingAllocs(range)
         val histogram = Histogram.build(trackedHeap, true)
+
         assertEquals(4, histogram.frequencyMap.size)
         assertTrue(histogram.frequencyMap.contains(1))
         assertEquals(1, histogram.frequencyMap[1])
@@ -102,5 +104,21 @@ class HistogramTest {
         assertFalse(histogram.frequencyMap.contains(7))
         assertTrue(histogram.frequencyMap.contains(8))
         assertEquals(1, histogram.frequencyMap[8])
+    }
+
+    @Test
+    fun toStringReturnsReadableString() {
+        val range = IntRange(1, 5)
+        val trackedHeap = createTrackedHeapWithIncreasingAllocs(range)
+        val histogram = Histogram.build(trackedHeap, false)
+        val expectedString =
+"""(alloc size:frequency):
+         1	1
+         2	1
+         3	1
+         4	1
+         5	1
+"""
+        assertEquals(expectedString, histogram.toString())
     }
 }
