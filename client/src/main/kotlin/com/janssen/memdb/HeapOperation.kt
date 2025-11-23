@@ -1,6 +1,6 @@
 package com.janssen.memdb
 
-import heap_tracker.Message
+import memdb.Message
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
@@ -93,7 +93,7 @@ data class HeapOperation(
     companion object {
         fun fromProtobuf(
             seqNo: Int,
-            proto: heap_tracker.Message.HeapOperation,
+            proto: memdb.Message.HeapOperation,
         ): HeapOperation {
             val durationSinceServerStart = proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS)
             val heapOperationType =
@@ -118,13 +118,13 @@ data class HeapOperation(
             )
         }
 
-        fun toProtobuf(heapOperation: HeapOperation): heap_tracker.Message.HeapOperation =
-            heap_tracker.Message.HeapOperation
+        fun toProtobuf(heapOperation: HeapOperation): memdb.Message.HeapOperation =
+            memdb.Message.HeapOperation
                 .newBuilder()
                 .setKind(
                     when (heapOperation.kind) {
-                        HeapOperationKind.Alloc -> heap_tracker.Message.HeapOperation.Kind.Alloc
-                        else -> heap_tracker.Message.HeapOperation.Kind.Dealloc
+                        HeapOperationKind.Alloc -> memdb.Message.HeapOperation.Kind.Alloc
+                        else -> memdb.Message.HeapOperation.Kind.Dealloc
                     },
                 ).setMicrosSinceServerStart(heapOperation.durationSinceServerStart.inWholeMicroseconds)
                 .setAddress(heapOperation.address.toLong())

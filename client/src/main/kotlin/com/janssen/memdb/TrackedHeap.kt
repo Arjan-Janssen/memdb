@@ -1,6 +1,6 @@
 package com.janssen.memdb
 
-import heap_tracker.Message
+import memdb.Message
 import java.io.File
 import java.text.ParseException
 import java.util.Locale
@@ -312,8 +312,8 @@ data class TrackedHeap(
         toProtobuf().writeTo(outputStream)
     }
 
-    fun toProtobuf(): heap_tracker.Message.Update {
-        val builder = heap_tracker.Message.Update.newBuilder()
+    fun toProtobuf(): memdb.Message.Update {
+        val builder = memdb.Message.Update.newBuilder()
         heapOperations.forEach {
             builder.addHeapOperations(HeapOperation.toProtobuf(it))
         }
@@ -341,11 +341,11 @@ data class TrackedHeap(
 
         fun loadFromFile(filePath: String): TrackedHeap {
             val inputStream = File(filePath).inputStream()
-            val proto = heap_tracker.Message.Update.parseFrom(inputStream)
+            val proto = memdb.Message.Update.parseFrom(inputStream)
             return fromProtobuf(proto)
         }
 
-        fun fromProtobuf(update: heap_tracker.Message.Update): TrackedHeap {
+        fun fromProtobuf(update: memdb.Message.Update): TrackedHeap {
             val validProtoHeapOperations =
                 update.heapOperationsList.filter {
                     it.kind != Message.HeapOperation.Kind.UNRECOGNIZED

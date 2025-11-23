@@ -13,7 +13,7 @@ class Client {
             return null
         }
         val bytesSent = socket.inputStream.readNBytes(bytesAvailable)
-        val message = heap_tracker.Message.Update.parseFrom(bytesSent)
+        val message = memdb.Message.Update.parseFrom(bytesSent)
         if (message.endOfFile) {
             println("End of file. Closing connection")
             socket.close()

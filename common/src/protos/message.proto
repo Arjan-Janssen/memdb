@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package heap_tracker;
+package memdb;
 
 message HeapOperation {
     enum Kind {

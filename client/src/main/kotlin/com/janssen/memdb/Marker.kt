@@ -7,14 +7,14 @@ data class Marker(
     override fun toString() = "marker[name: $name, seq-no: $firstOperationSeqNo]"
 
     companion object {
-        fun fromProtobuf(proto: heap_tracker.Message.Marker) =
+        fun fromProtobuf(proto: memdb.Message.Marker) =
             Marker(
                 proto.firstOperationSeqNo.toInt(),
                 proto.name,
             )
 
-        fun toProtobuf(marker: Marker): heap_tracker.Message.Marker =
-            heap_tracker.Message.Marker
+        fun toProtobuf(marker: Marker): memdb.Message.Marker =
+            memdb.Message.Marker
                 .newBuilder()
                 .setName(marker.name)
                 .setFirstOperationSeqNo(marker.firstOperationSeqNo.toLong())
