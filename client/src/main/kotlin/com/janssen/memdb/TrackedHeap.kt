@@ -150,10 +150,7 @@ data class TrackedHeap(
                 it.name == markerName
             }?.firstOperationSeqNo
 
-    fun rangeStartPosition(rangeSpecStart: String): Int? {
-        var startPosition = rangeSpecStart.toIntOrNull()
-        return startPosition ?: markerSeqNo(rangeSpecStart)
-    }
+    fun rangeStartPosition(rangeSpecStart: String) = rangeSpecStart.toIntOrNull() ?: markerSeqNo(rangeSpecStart)
 
     fun rangeEndPosition(rangeSpecEnd: String): Int? {
         fun markerEndPosition(markerName: String): Int? {
@@ -163,7 +160,7 @@ data class TrackedHeap(
             return null
         }
 
-        var endPosition = rangeSpecEnd.toIntOrNull()
+        val endPosition = rangeSpecEnd.toIntOrNull()
         return endPosition ?: markerEndPosition(rangeSpecEnd)
     }
 
