@@ -263,7 +263,6 @@ class MemDB(
             range.trackedHeap.plotGraph(
                 range.range,
                 TrackedHeap.PlotDimensions(columns, rows),
-                '#',
             ),
         )
     }

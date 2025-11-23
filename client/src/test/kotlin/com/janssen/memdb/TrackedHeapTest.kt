@@ -139,4 +139,40 @@ markers:
             TrackedHeap.fromProtobuf(expectedTrackedHeap.toProtobuf()),
         )
     }
+
+    @Test
+    fun plotGraphFullGraph() {
+        val trackedHeap = createTrackedHeap()
+        val expectedGraph =
+""" allocated->                    <-4
+     begin: --------------------
+         0: ####################
+       end: --------------------
+         1: ###############
+"""
+        assertEquals(
+            expectedGraph,
+            trackedHeap.plotGraph(
+                IntRange(0, 1),
+                TrackedHeap.PlotDimensions(20, 2),
+            ),
+        )
+    }
+
+    @Test
+    fun plotGraphSubrange() {
+        val trackedHeap = createTrackedHeap()
+        val expectedGraph =
+            """ allocated->                    <-4
+       end: --------------------
+         1: ###############
+"""
+        assertEquals(
+            expectedGraph,
+            trackedHeap.plotGraph(
+                IntRange(1, 1),
+                TrackedHeap.PlotDimensions(20, 2),
+            ),
+        )
+    }
 }

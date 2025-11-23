@@ -8,7 +8,7 @@ import kotlin.math.ceil
 import kotlin.math.min
 
 const val MIN_GRAPH_COLUMNS = 8
-const val MIN_GRAPH_ROWS = 8
+const val MIN_GRAPH_ROWS = 0
 
 @Suppress("TooManyFunctions")
 data class TrackedHeap(
@@ -186,65 +186,11 @@ data class TrackedHeap(
         return builder.toString()
     }
 
-    fun plotHeading(
-        columns: Int,
-        maxHeapSize: Int,
-    ): String {
-        val builder = StringBuilder()
-        builder.append(String.format(Locale.getDefault(), "%10s->", "allocated"))
-        repeat(columns) {
-            builder.append(' ')
-        }
-        builder.append("<-")
-        builder.append(maxHeapSize.toString())
-        return builder.toString()
-    }
-
-    fun plotMarkerLine(
-        name: String,
-        columns: Int,
-    ): String {
-        val builder = StringBuilder()
-        builder.append(String.format(Locale.getDefault(), "%10s: ", name))
-        repeat(columns) {
-            builder.append('-')
-        }
-        return builder.toString()
-    }
-
     data class RowOperations(
         val seqNo: Int,
         val count: Int,
         val plotRange: IntRange,
     )
-
-    fun plotGraphRow(
-        rowOperations: RowOperations,
-        columns: Int,
-        numSymbols: Int,
-        symbol: Char,
-    ): String {
-        val builder = StringBuilder()
-        marker(rowOperations.seqNo)?.let {
-            builder.appendLine(plotMarkerLine(it.name, columns))
-        }
-
-        builder.append(String.format(Locale.getDefault(), "%10d: ", rowOperations.seqNo))
-        repeat(numSymbols) {
-            builder.append(symbol)
-        }
-        builder.appendLine()
-
-        val markerEndSeqNo = min(rowOperations.seqNo + rowOperations.count - 1, rowOperations.plotRange.last)
-        val markerRange = rowOperations.seqNo + 1..markerEndSeqNo
-        for (skippedSeqNo in markerRange) {
-            marker(skippedSeqNo)?.let {
-                builder.appendLine(plotMarkerLine(it.name, columns))
-            }
-        }
-
-        return builder.toString()
-    }
 
     data class PlotDimensions(
         val columns: Int,
@@ -254,14 +200,68 @@ data class TrackedHeap(
     fun plotGraph(
         operationRange: IntRange,
         dimensions: PlotDimensions,
-        symbol: Char,
     ): String {
+        fun plotHeading(
+            columns: Int,
+            maxHeapSize: Int,
+        ): String {
+            val builder = StringBuilder()
+            builder.append(String.format(Locale.getDefault(), "%10s->", "allocated"))
+            repeat(columns) {
+                builder.append(' ')
+            }
+            builder.append("<-")
+            builder.append(maxHeapSize.toString())
+            return builder.toString()
+        }
+
+        fun plotMarkerLine(
+            name: String,
+            columns: Int,
+        ): String {
+            val builder = StringBuilder()
+            builder.append(String.format(Locale.getDefault(), "%10s: ", name))
+            repeat(columns) {
+                builder.append('-')
+            }
+            return builder.toString()
+        }
+
+        fun plotGraphRow(
+            rowOperations: RowOperations,
+            columns: Int,
+            numSymbols: Int,
+            symbol: Char,
+        ): String {
+            val builder = StringBuilder()
+            marker(rowOperations.seqNo)?.let {
+                builder.appendLine(plotMarkerLine(it.name, columns))
+            }
+
+            builder.append(String.format(Locale.getDefault(), "%10d: ", rowOperations.seqNo))
+            repeat(numSymbols) {
+                builder.append(symbol)
+            }
+            builder.appendLine()
+
+            val markerEndSeqNo = min(rowOperations.seqNo + rowOperations.count - 1, rowOperations.plotRange.last)
+            val markerRange = rowOperations.seqNo + 1..markerEndSeqNo
+            for (skippedSeqNo in markerRange) {
+                marker(skippedSeqNo)?.let {
+                    builder.appendLine(plotMarkerLine(it.name, columns))
+                }
+            }
+
+            return builder.toString()
+        }
+
         require(0 <= operationRange.first)
         require(operationRange.first <= operationRange.last)
         require(operationRange.last < heapOperations.size)
         require(MIN_GRAPH_COLUMNS <= dimensions.columns)
         require(MIN_GRAPH_ROWS <= dimensions.rows)
 
+        val symbol = '#'
         val postOperationHeapSizes = mutableListOf<Int>()
         var postOperationHeapSize = 0
         heapOperations.forEach {
@@ -303,7 +303,6 @@ data class TrackedHeap(
             builder.appendLine(plotMarkerLine(it.name, dimensions.columns))
         }
 
-        builder.appendLine()
         return builder.toString()
     }
 
