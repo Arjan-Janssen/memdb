@@ -168,19 +168,26 @@ data class TrackedHeap(
     }
 
     override fun toString(): String {
-        var builder = StringBuilder().appendLine("tracked heap:")
+        var builder = StringBuilder()
+        var indent = "  "
 
-        var cumulativeSize = 0
-        heapOperations.forEach {
-            builder.appendLine("$it")
-            cumulativeSize += if (it.kind == HeapOperationKind.Alloc) it.size else -it.size
-            builder.appendLine("cumulative size: $cumulativeSize")
+        if (heapOperations.isNotEmpty()) {
+            builder.append("heap operations:")
+            var cumulativeSize = 0
+            heapOperations.forEach {
+                builder.append("\n$indent$it")
+                cumulativeSize += if (it.kind == HeapOperationKind.Alloc) it.size else -it.size
+                builder.append(" -> $cumulativeSize")
+            }
         }
 
-        println("markers:")
-        markers.forEach {
-            builder.appendLine("$it")
+        if (markers.isNotEmpty()) {
+            builder.append("\n\nmarkers:")
+            markers.forEach {
+                builder.append("\n$indent$it")
+            }
         }
+
         return builder.toString()
     }
 
