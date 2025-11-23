@@ -151,6 +151,58 @@ class TrackedHeapTest {
         )
 
     @Test
+    fun rangeStartPositionWithValidMarkerName() {
+        val trackedHeap = createTrackedHeap()
+        assertEquals(1, trackedHeap.rangeStartPosition("end"))
+    }
+
+    @Test
+    fun rangeStartPositionWithInvalidMarkerName() {
+        val trackedHeap = createTrackedHeap()
+        assertNull(trackedHeap.rangeStartPosition("arjan"))
+    }
+
+    @Test
+    fun rangeStartPositionValidIndex() {
+        val trackedHeap = createTrackedHeap()
+        assertEquals(0, trackedHeap.rangeStartPosition("0"))
+    }
+
+    @Test
+    fun rangeStartPositionInvalidIndex() {
+        val trackedHeap = createTrackedHeap()
+        // Invalid indices are permitted. The function does not do range checking
+        assertEquals(1982, trackedHeap.rangeStartPosition("1982"))
+        assertEquals(-1, trackedHeap.rangeStartPosition("-1"))
+    }
+
+    @Test
+    fun rangeEndPositionWithValidMarkerName() {
+        val trackedHeap = createTrackedHeap()
+        assertEquals(0, trackedHeap.rangeEndPosition("end"))
+    }
+
+    @Test
+    fun rangeEndPositionWithInvalidMarkerName() {
+        val trackedHeap = createTrackedHeap()
+        assertNull(trackedHeap.rangeEndPosition("arjan"))
+    }
+
+    @Test
+    fun rangeEndPositionValidIndex() {
+        val trackedHeap = createTrackedHeap()
+        assertEquals(1, trackedHeap.rangeEndPosition("1"))
+    }
+
+    @Test
+    fun rangeEndPositionInvalidIndex() {
+        val trackedHeap = createTrackedHeap()
+        // Invalid indices are permitted. The function does not do range checking
+        assertEquals(1982, trackedHeap.rangeEndPosition("1982"))
+        assertEquals(-1, trackedHeap.rangeEndPosition("-1"))
+    }
+
+    @Test
     fun concatenateTwoTrackedHeaps() {
         val trackedHeap0 = createTrackedHeap()
         val trackedHeap1 = createFollowingTrackedHeap()
