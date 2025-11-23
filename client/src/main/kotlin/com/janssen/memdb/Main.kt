@@ -8,7 +8,6 @@ import kotlinx.cli.default
 import java.io.FileNotFoundException
 import java.net.ConnectException
 import java.net.UnknownHostException
-import java.text.ParseException
 
 const val DEFAULT_CONNECTION_PORT = 8989
 const val DEFAULT_PLOT_COLUMNS = 100
@@ -29,7 +28,7 @@ enum class AnsiColor(
     override fun toString(): String = code
 }
 
-class HeapDB(
+class MemDB(
     var trackedHeap: TrackedHeap? = null,
     var diff: Diff? = null,
 ) {
@@ -38,7 +37,7 @@ class HeapDB(
     fun run(args: Array<String>) {
         @OptIn(ExperimentalCli::class)
         class PlotCommand(
-            val heapDB: HeapDB,
+            val memDB: MemDB,
         ) : Subcommand(
                 "plot",
                 "Plot tracked heap",
@@ -65,8 +64,8 @@ class HeapDB(
             )
 
             override fun execute() {
-                heapDB.trackedHeap?.let {
-                    heapDB.doPlot(
+                memDB.trackedHeap?.let {
+                    memDB.doPlot(
                         it,
                         range ?: TrackedHeap.Range.wholeRangeInclusiveStr(it),
                         columns,
@@ -78,7 +77,7 @@ class HeapDB(
 
         @OptIn(ExperimentalCli::class)
         class PlotLayoutCommand(
-            val heapDB: HeapDB,
+            val memDB: MemDB,
         ) : Subcommand(
                 "plot-layout",
                 "Plot diff memory layout",
@@ -97,7 +96,7 @@ class HeapDB(
             ).default(DEFAULT_PLOT_LAYOUT_ROWS)
 
             override fun execute() {
-                heapDB.diff?.let {
+                memDB.diff?.let {
                     doPlotPlayout(
                         it,
                         columns,
@@ -318,238 +317,8 @@ class HeapDB(
     }
 }
 
-@Suppress("TooManyFunctions")
-class InteractiveMode(
-    val heapDB: HeapDB,
-) {
-    private fun printNoTrackedHeap() {
-        println("No tracked heap available.")
-    }
-
-    private fun printNoDiff() {
-        println("No diff available.")
-    }
-
-    private fun requiredArg(
-        args: List<String>,
-        position: Int,
-        name: String,
-    ): String {
-        if (position >= args.size) {
-            throw ParseException("Expected argument $name at position $position", position)
-        }
-        return args[position]
-    }
-
-    private fun requiredIntArg(
-        args: List<String>,
-        position: Int,
-        name: String,
-    ): Int {
-        val arg = requiredArg(args, position, name)
-        return arg.toIntOrNull()
-            ?: throw ParseException("Expected integer argument $name at position $position", position)
-    }
-
-    private fun optionalArg(
-        args: List<String>,
-        position: Int,
-    ): String? {
-        if (position >= args.size) {
-            return null
-        }
-        return args[position]
-    }
-
-    private fun optionalIntArg(
-        args: List<String>,
-        position: Int,
-        name: String,
-        defaultValue: Int,
-    ): Int {
-        val optionalArg = optionalArg(args, position)
-        optionalArg ?: return defaultValue
-        return optionalArg.toIntOrNull()
-            ?: throw ParseException("Expected integer argument $name at position $position", position)
-    }
-
-    @Suppress("UnusedParameter")
-    private fun runQuitCommand(args: List<String>) {
-        shouldQuit = true
-    }
-
-    private fun runLoadCommand(args: List<String>) {
-        heapDB.doLoad(requiredArg(args, 1, "file-path"))
-    }
-
-    private fun runSaveCommand(args: List<String>) {
-        heapDB.trackedHeap?.let {
-            heapDB.doSave(it, requiredArg(args, 1, "file-path"))
-        }
-    }
-
-    private fun runPrintCommand(args: List<String>) {
-        heapDB.trackedHeap?.let {
-            heapDB.doPrint(
-                it,
-                requiredIntArg(args, 1, "heap-operation-sequence-number"),
-                optionalArg(args, 2) in setOf("bt", "backtrace"),
-            )
-        }
-    }
-
-    private fun runDiffCommand(args: List<String>) {
-        heapDB.trackedHeap?.also {
-            heapDB.doDiff(it, requiredArg(args, 1, "diff-spec"))
-        } ?: printNoTrackedHeap()
-    }
-
-    private fun runHistogramCommand(args: List<String>) {
-        heapDB.trackedHeap?.also {
-            heapDB.doHistogram(it, optionalArg(args, 1) !in setOf("no-buckets", "nb"))
-        } ?: printNoTrackedHeap()
-    }
-
-    @Suppress("MagicNumber")
-    private fun runPlotCommand(args: List<String>) {
-        heapDB.trackedHeap?.also {
-            heapDB.doPlot(
-                it,
-                optionalArg(args, 1) ?: TrackedHeap.Range.wholeRangeInclusiveStr(it),
-                optionalIntArg(args, 2, "columns", DEFAULT_PLOT_COLUMNS),
-                optionalIntArg(args, 3, "rows", DEFAULT_PLOT_COLUMNS),
-            )
-        } ?: printNoDiff()
-    }
-
-    private fun runPlotLayoutCommand(args: List<String>) {
-        heapDB.diff?.also {
-            heapDB.doPlotPlayout(
-                it,
-                optionalIntArg(args, 1, "columns", DEFAULT_PLOT_LAYOUT_COLUMNS),
-                optionalIntArg(args, 2, "rows", DEFAULT_PLOT_LAYOUT_ROWS),
-            )
-        } ?: printNoDiff()
-    }
-
-    @Suppress("UnusedParameter")
-    private fun runHelpCommand(args: List<String>) {
-        println("Usage:")
-        commands.forEach {
-            println("${it.name}, ${it.shortName} -> ${it.help}")
-        }
-    }
-
-    data class Command(
-        val name: String,
-        val shortName: String,
-        val help: String,
-        val run: (List<String>) -> Unit,
-    )
-
-    private val commands =
-        listOf(
-            Command(
-                "quit",
-                "q",
-                "Quit application",
-            ) {
-                runQuitCommand(it)
-            },
-            Command(
-                "load",
-                "l",
-                "Load tracked heap [file name]",
-            ) {
-                runLoadCommand(it)
-            },
-            Command(
-                "save",
-                "s",
-                "Save tracked heap [file name]",
-            ) {
-                runSaveCommand(it)
-            },
-            Command(
-                "print",
-                "p",
-                "Print heap operation [sequence number] ?[bt | backtrace]",
-            ) {
-                runPrintCommand(it)
-            },
-            Command(
-                "plot",
-                "plot",
-                "Plot heap memory usage ?[range-spec] ?[columns] ?[rows]",
-            ) {
-                runPlotCommand(it)
-            },
-            Command(
-                "plot-layout",
-                "plot-layout",
-                "Plot heap memory layout ?[columns] ?[rows]",
-            ) {
-                runPlotLayoutCommand(it)
-            },
-            Command(
-                "diff",
-                "d",
-                "Diff between two pre-operation states of the heap [from-sequence-number..to-sequence-number]",
-            ) {
-                runDiffCommand(it)
-            },
-            Command(
-                "histogram",
-                "hist",
-                "Print histogram of allocations by size ?[no-buckets | nb]",
-            ) {
-                runHistogramCommand(it)
-            },
-            Command(
-                "help",
-                "h",
-                "Usage information",
-            ) {
-                runHelpCommand(it)
-            },
-        )
-
-    private fun parseAndRun(args: List<String>) {
-        if (args.isEmpty()) {
-            return
-        }
-        val command = args[0]
-        try {
-            commands
-                .find {
-                    it.shortName == command || it.name == command
-                }?.also {
-                    it.run(args)
-                } ?: println("Unknown command: $command")
-        } catch (e: ParseException) {
-            println("Invalid command. ${e.message}")
-        }
-    }
-
-    fun run() {
-        println("Interactive mode:")
-        println("type h<enter> for help")
-        try {
-            while (!shouldQuit) {
-                print("> ")
-                val args = readln().split(' ')
-                parseAndRun(args)
-            }
-        } catch (e: ParseException) {
-            println("$e")
-        }
-    }
-
-    private var shouldQuit = false
-}
-
 fun main(args: Array<String>) {
     println("$APP_NAME (c) 2025 by Arjan Janssen")
-    val heapDB = HeapDB()
-    heapDB.run(args)
+    val memDB = MemDB()
+    memDB.run(args)
 }
