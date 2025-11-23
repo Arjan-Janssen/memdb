@@ -130,4 +130,13 @@ markers:
   marker[name: end, seq-no: 1]"""
         assertEquals(expectedString, trackedHeap.toString())
     }
+
+    @Test
+    fun protobufRoundTripCommutes() {
+        val expectedTrackedHeap = createTrackedHeap()
+        assertEquals(
+            expectedTrackedHeap,
+            TrackedHeap.fromProtobuf(expectedTrackedHeap.toProtobuf()),
+        )
+    }
 }
