@@ -51,7 +51,10 @@ data class TrackedHeap(
         fun build(): TrackedHeap = TrackedHeap(heapOperations, markers)
     }
 
-    private fun createIntRange(spec: String): IntRange {
+    private fun createIntRange(
+        spec: String,
+        isDiff: Boolean,
+    ): IntRange {
         val fromToSpec = spec.split("..")
         if (fromToSpec.size != 2) {
             throw ParseException("Invalid diff spec $spec. Expected format [from]..[to]", 0)
@@ -61,7 +64,7 @@ data class TrackedHeap(
                 ?: throw ParseException("Invalid from-position in diff spec $spec", 1)
 
         val toPosition =
-            rangeEndPosition(fromToSpec[1])
+            rangeEndPosition(fromToSpec[1], isDiff)
                 ?: throw ParseException("Invalid to-position in diff spec $spec", 2)
 
         return IntRange(fromPosition, toPosition)
@@ -88,7 +91,7 @@ data class TrackedHeap(
                     }
                 }
 
-                val range = trackedHeap.createIntRange(spec)
+                val range = trackedHeap.createIntRange(spec, true)
                 checkPositionValid(range.first, "from-position")
                 checkPositionValid(range.last, "to-position")
                 return DiffRange(trackedHeap, range)
@@ -134,7 +137,7 @@ data class TrackedHeap(
                 if (fromToSpec.size != 2) {
                     throw ParseException("Invalid diff spec $spec. Expected format [from]..[to]", 0)
                 }
-                val range = trackedHeap.createIntRange(spec)
+                val range = trackedHeap.createIntRange(spec, false)
                 return fromIntRange(trackedHeap, range)
             }
         }
@@ -152,10 +155,17 @@ data class TrackedHeap(
         rangeSpecStart.toIntOrNull()
             ?: marker(rangeSpecStart)?.firstOperationSeqNo
 
-    fun rangeEndPosition(rangeSpecEnd: String): Int? {
+    fun rangeEndPosition(
+        rangeSpecEnd: String,
+        isDiff: Boolean,
+    ): Int? {
         fun markerEndPosition(markerName: String): Int? {
             marker(markerName)?.let {
-                return it.firstOperationSeqNo - 1
+                if (isDiff) {
+                    return it.firstOperationSeqNo
+                } else {
+                    return it.firstOperationSeqNo - 1
+                }
             }
             return null
         }

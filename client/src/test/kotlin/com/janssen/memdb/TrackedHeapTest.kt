@@ -117,7 +117,7 @@ class TrackedHeapRangeTest {
             markers =
                 listOf(
                     Marker(0, "begin"),
-                    Marker(1, "end"),
+                    Marker(2, "end"),
                 ),
         )
 
@@ -185,7 +185,7 @@ class TrackedHeapRangeTest {
     fun `fromString with valid marker names`() {
         val trackedHeap = createSimpleTrackedHeap()
         val expectedFromPosition = 0
-        val expectedToPosition = 0
+        val expectedToPosition = 1
         val range =
             TrackedHeap.Range.fromString(
                 trackedHeap,
@@ -350,27 +350,27 @@ class TrackedHeapTest {
     @Test
     fun `rangeEndPosition with valid marker name`() {
         val trackedHeap = createTrackedHeap()
-        assertEquals(0, trackedHeap.rangeEndPosition("end"))
+        assertEquals(0, trackedHeap.rangeEndPosition("end", false))
     }
 
     @Test
     fun `rangeEndPosition with invalid marker name`() {
         val trackedHeap = createTrackedHeap()
-        assertNull(trackedHeap.rangeEndPosition("arjan"))
+        assertNull(trackedHeap.rangeEndPosition("arjan", false))
     }
 
     @Test
     fun `rangeEndPosition with valid index`() {
         val trackedHeap = createTrackedHeap()
-        assertEquals(1, trackedHeap.rangeEndPosition("1"))
+        assertEquals(1, trackedHeap.rangeEndPosition("1", false))
     }
 
     @Test
     fun `rangeEndPosition with invalid index`() {
         val trackedHeap = createTrackedHeap()
         // Invalid indices are permitted. The function does not do range checking
-        assertEquals(1982, trackedHeap.rangeEndPosition("1982"))
-        assertEquals(-1, trackedHeap.rangeEndPosition("-1"))
+        assertEquals(1982, trackedHeap.rangeEndPosition("1982", false))
+        assertEquals(-1, trackedHeap.rangeEndPosition("-1", false))
     }
 
     @Test

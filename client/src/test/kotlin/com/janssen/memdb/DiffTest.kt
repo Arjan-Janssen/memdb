@@ -9,6 +9,8 @@ class DiffTest {
             .Builder()
             .addHeapOperation(HeapOperation.Builder().alloc(5, 2))
             .addHeapOperation(HeapOperation.Builder().dealloc(5))
+            .addMarker(Marker(0, "before"))
+            .addMarker(Marker(2, "after"))
             .build()
 
     private fun createMismatchedAllocAndDeallocScenario() =
@@ -50,6 +52,14 @@ class DiffTest {
     fun `compute diff with matched alloc and dealloc operation`() {
         val trackedHeap = createMatchedAllocAndDeallocScenario()
         val diff = Diff.compute(trackedHeap, "0..2")
+        assertEquals(0, diff.added.size)
+        assertEquals(0, diff.removed.size)
+    }
+
+    @Test
+    fun `compute diff using markers`() {
+        val trackedHeap = createMatchedAllocAndDeallocScenario()
+        val diff = Diff.compute(trackedHeap, "before..after")
         assertEquals(0, diff.added.size)
         assertEquals(0, diff.removed.size)
     }
