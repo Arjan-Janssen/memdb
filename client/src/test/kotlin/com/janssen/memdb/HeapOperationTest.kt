@@ -7,7 +7,7 @@ import kotlin.time.toDuration
 
 class HeapOperationBuilderTest {
     @Test
-    fun builderCreatesValidAlloc() {
+    fun `builder creates valid alloc operations`() {
         val alloc =
             HeapOperation(
                 10,
@@ -30,7 +30,7 @@ class HeapOperationBuilderTest {
     }
 
     @Test
-    fun builderCreatesValidDealloc() {
+    fun `builder creates valid dealloc operations`() {
         val seqNo = 10
         val dealloc =
             HeapOperation(
@@ -54,7 +54,7 @@ class HeapOperationBuilderTest {
     }
 
     @Test
-    fun builderIncrementsSeqNo() {
+    fun `builder increments sequence-numbers`() {
         val seqNo = 10
         val builder = HeapOperation.Builder(seqNo)
         assertEquals(seqNo, builder.build().seqNo)
@@ -65,7 +65,7 @@ class HeapOperationBuilderTest {
 
 class HeapOperationTest {
     @Test
-    fun protobufAllocRoundTripCommutes() {
+    fun `protobuf round-trip commutes for alloc`() {
         val seqNo = 10
         val alloc =
             HeapOperation
@@ -80,7 +80,7 @@ class HeapOperationTest {
     }
 
     @Test
-    fun protobufDeallocRoundTripCommutes() {
+    fun `protobuf round-trip commutes for dealloc`() {
         val seqNo = 20
         val dealloc =
             HeapOperation
