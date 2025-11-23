@@ -142,18 +142,20 @@ data class TrackedHeap(
 
     fun marker(firstOperationSeqNo: Int): Marker? = markers.find { it.firstOperationSeqNo == firstOperationSeqNo }
 
-    fun markerSeqNo(markerName: String): Int? =
+    fun marker(markerName: String): Marker? =
         markers
             .find {
                 it.name == markerName
-            }?.firstOperationSeqNo
+            }
 
-    fun rangeStartPosition(rangeSpecStart: String) = rangeSpecStart.toIntOrNull() ?: markerSeqNo(rangeSpecStart)
+    fun rangeStartPosition(rangeSpecStart: String) =
+        rangeSpecStart.toIntOrNull()
+            ?: marker(rangeSpecStart)?.firstOperationSeqNo
 
     fun rangeEndPosition(rangeSpecEnd: String): Int? {
         fun markerEndPosition(markerName: String): Int? {
-            markerSeqNo(markerName)?.let {
-                return it - 1
+            marker(markerName)?.let {
+                return it.firstOperationSeqNo - 1
             }
             return null
         }
@@ -218,7 +220,7 @@ data class TrackedHeap(
             return builder.toString()
         }
 
-        fun plotMarkerLine(
+        fun plotMarker(
             name: String,
             columns: Int,
         ): String {
@@ -240,7 +242,7 @@ data class TrackedHeap(
         ): String {
             val builder = StringBuilder()
             marker(rowOperations.seqNo)?.let {
-                builder.appendLine(plotMarkerLine(it.name, columns))
+                builder.appendLine(plotMarker(it.name, columns))
             }
 
             builder.append(String.format(Locale.getDefault(), "%10d: ", rowOperations.seqNo))
@@ -249,11 +251,12 @@ data class TrackedHeap(
             }
             builder.appendLine()
 
+            // plot markers associated with skipped heap operations
             val markerEndSeqNo = min(rowOperations.seqNo + rowOperations.count - 1, rowOperations.plotRange.last)
             val markerRange = rowOperations.seqNo + 1..markerEndSeqNo
             for (skippedSeqNo in markerRange) {
                 marker(skippedSeqNo)?.let {
-                    builder.appendLine(plotMarkerLine(it.name, columns))
+                    builder.appendLine(plotMarker(it.name, columns))
                 }
             }
 
@@ -281,7 +284,7 @@ data class TrackedHeap(
         val builder = StringBuilder()
         builder.appendLine(plotHeading(dimensions.columns, maxHeapSize))
 
-        val numOperations = 1 + (operationRange.endInclusive - operationRange.start)
+        val numOperations = 1 + (operationRange.last - operationRange.first)
         val clampedRows = if (numOperations < dimensions.rows) numOperations else dimensions.rows
         if (clampedRows == 0) {
             return builder.toString()
@@ -305,7 +308,7 @@ data class TrackedHeap(
 
         // print potential terminating markers
         marker(operationRange.last + 1)?.let {
-            builder.appendLine(plotMarkerLine(it.name, dimensions.columns))
+            builder.appendLine(plotMarker(it.name, dimensions.columns))
         }
 
         return builder.toString()

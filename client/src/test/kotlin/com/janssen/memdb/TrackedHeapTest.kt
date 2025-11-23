@@ -2,6 +2,8 @@ package com.janssen.memdb
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
+import org.junit.jupiter.api.assertNull
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -175,6 +177,39 @@ class TrackedHeapTest {
             )
         assertEquals(1, truncatedHeap.heapOperations.size)
         assertEquals(trackedHeap.heapOperations[1], truncatedHeap.heapOperations[0])
+    }
+
+    @Test
+    fun markerValidName() {
+        val trackedHeap = createTrackedHeap()
+        val validName = "begin"
+        val marker = trackedHeap.marker(validName)
+        assertNotNull(marker)
+        assertEquals(validName, marker.name)
+    }
+
+    @Test
+    fun markerInvalidName() {
+        val trackedHeap = createTrackedHeap()
+        val invalidName = "invalid"
+        assertNull(trackedHeap.marker(invalidName))
+    }
+
+    @Test
+    fun markerValidSequenceNumber() {
+        val trackedHeap = createTrackedHeap()
+        val validSeqNo = 0
+        val marker = trackedHeap.marker(validSeqNo)
+        assertNotNull(marker)
+        val expectedName = "begin"
+        assertEquals(expectedName, marker.name)
+    }
+
+    @Test
+    fun markerInvalidSequenceNumber() {
+        val trackedHeap = createTrackedHeap()
+        val invalidSeqNo = 1982
+        assertNull(trackedHeap.marker(invalidSeqNo))
     }
 
     @Test
