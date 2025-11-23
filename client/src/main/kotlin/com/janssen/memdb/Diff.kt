@@ -245,7 +245,7 @@ data class Diff private constructor(
                     }
                 }
             }
-            if (truncatedRange.range.first <= truncatedRange.range.last) {
+            if (diffRange.range.first <= diffRange.range.last) {
                 return Diff(added.toList(), removed.toList())
             }
             // Handle reversed ranges by swapping added and removed
