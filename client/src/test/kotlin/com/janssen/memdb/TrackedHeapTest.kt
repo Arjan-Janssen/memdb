@@ -280,7 +280,7 @@ class TrackedHeapTest {
                     1,
                     HeapOperationKind.Dealloc,
                     durationSinceServerStart = 400.toDuration(DurationUnit.MILLISECONDS),
-                    address = 10,
+                    address = 2,
                     size = 2,
                     threadId = 6,
                     backtrace = "dealloc backtrace",
@@ -441,7 +441,7 @@ class TrackedHeapTest {
         val expectedString =
 """heap operations:
   alloc[seq no: 0, kind: Alloc, duration: 200ms, address: 00000002, size: 4, thread id: 5, backtrace: (hidden)] -> 4
-  dealloc[seq no: 1, kind: Dealloc, duration: 400ms, address: 0000000a, size: 2, thread id: 6, backtrace: (hidden)] -> 2
+  dealloc[seq no: 1, kind: Dealloc, duration: 400ms, address: 00000002, size: 2, thread id: 6, backtrace: (hidden)] -> 2
 
 markers:
   marker[name: begin, seq-no: 0]

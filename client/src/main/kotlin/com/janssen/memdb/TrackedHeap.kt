@@ -209,10 +209,30 @@ data class TrackedHeap(
         val rows: Int,
     )
 
+    @Suppress("CyclomaticComplexMethod")
     fun plotGraph(
         operationRange: IntRange,
         dimensions: PlotDimensions,
     ): String {
+        fun computePostOperationHeapSizes(heapOperations: List<HeapOperation>): List<Int> {
+            val heapSizes = mutableListOf<Int>()
+            var currentHeapSize = 0
+            val knownAddresses = mutableSetOf<Int>()
+            heapOperations.forEach {
+                if (it.kind == HeapOperationKind.Alloc) {
+                    currentHeapSize += it.size
+                    knownAddresses.add(it.address)
+                } else {
+                    if (knownAddresses.contains(it.address)) {
+                        currentHeapSize -= it.size
+                        knownAddresses.remove(it.address)
+                    }
+                }
+                heapSizes.addLast(currentHeapSize)
+            }
+            return heapSizes
+        }
+
         fun plotHeading(
             columns: Int,
             maxHeapSize: Int,
@@ -280,17 +300,9 @@ data class TrackedHeap(
         require(MIN_GRAPH_ROWS <= dimensions.rows)
 
         val symbol = '#'
-        val postOperationHeapSizes = mutableListOf<Int>()
-        var postOperationHeapSize = 0
-        heapOperations.forEach {
-            if (it.kind == HeapOperationKind.Alloc) {
-                postOperationHeapSize += it.size
-            } else {
-                postOperationHeapSize -= it.size
-            }
-            postOperationHeapSizes.addLast(postOperationHeapSize)
-        }
-        val maxHeapSize = postOperationHeapSizes.slice(operationRange).maxOrNull() ?: 0
+
+        val heapSizes = computePostOperationHeapSizes(heapOperations)
+        val maxHeapSize = heapSizes.slice(operationRange).maxOrNull() ?: 0
         val builder = StringBuilder()
         builder.appendLine(plotHeading(dimensions.columns, maxHeapSize))
 
@@ -301,7 +313,7 @@ data class TrackedHeap(
         }
         val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
         for (rowSeqNo in operationRange step operationsPerRow) {
-            val numSymbols = (postOperationHeapSizes[rowSeqNo] * dimensions.columns) / maxHeapSize
+            val numSymbols = (heapSizes[rowSeqNo] * dimensions.columns) / maxHeapSize
             builder.append(
                 plotRow(
                     RowOperations(
