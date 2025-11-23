@@ -176,7 +176,7 @@ class MemDB(
         loadOption?.let {
             doLoad(it)
         }
-        if (trackedHeap == null) {
+        if (trackedHeap == null && !interactiveOption) {
             println("No tracked heap. Closing.")
             return
         }
@@ -206,10 +206,8 @@ class MemDB(
             }
         }
         if (interactiveOption) {
-            trackedHeap?.let { heap ->
-                val interactiveMode = InteractiveMode(this)
-                interactiveMode.run()
-            }
+            val interactiveMode = InteractiveMode(this)
+            interactiveMode.run()
         }
     }
 

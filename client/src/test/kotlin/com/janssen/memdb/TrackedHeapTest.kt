@@ -481,9 +481,9 @@ markers:
     fun `plotGraph with smaller sub-range`() {
         val trackedHeap = createTrackedHeap()
         val expectedGraph =
-            """ allocated->                    <-4
+            """ allocated->                    <-2
        end: --------------------
-         1: ##########
+         1: ####################
 """
         assertEquals(
             expectedGraph,

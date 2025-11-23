@@ -290,7 +290,7 @@ data class TrackedHeap(
             }
             postOperationHeapSizes.addLast(postOperationHeapSize)
         }
-        val maxHeapSize = postOperationHeapSizes.maxOrNull() ?: 0
+        val maxHeapSize = postOperationHeapSizes.slice(operationRange).maxOrNull() ?: 0
         val builder = StringBuilder()
         builder.appendLine(plotHeading(dimensions.columns, maxHeapSize))
 
