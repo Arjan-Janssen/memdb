@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.text.ParseException
 import kotlin.time.DurationUnit
@@ -439,17 +440,17 @@ class TrackedHeapTest {
     fun `marker with valid sequence number`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         val validSeqNo = 0
-        val marker = trackedHeap.marker(validSeqNo)
-        assertNotNull(marker)
+        val markers = trackedHeap.markers(validSeqNo)
+        assertEquals(1, markers.size)
         val expectedName = "begin"
-        assertEquals(expectedName, marker?.name)
+        assertEquals(expectedName, markers.first().name)
     }
 
     @Test
     fun `marker with invalid sequence number`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         val invalidSeqNo = 1982
-        assertNull(trackedHeap.marker(invalidSeqNo))
+        assertTrue(trackedHeap.markers(invalidSeqNo).isEmpty())
     }
 
     @Test

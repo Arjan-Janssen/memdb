@@ -37,6 +37,13 @@ data class TrackedHeap(
         }
 
         fun addMarker(marker: Marker): Builder {
+            markers
+                .find {
+                    it.name == marker.name
+                }?.let {
+                    throw IllegalArgumentException("Marker with name ${marker.name} exists already")
+                }
+
             markers.add(marker)
             return this
         }
@@ -143,7 +150,15 @@ data class TrackedHeap(
         }
     }
 
-    fun marker(firstOperationSeqNo: Int): Marker? = markers.find { it.firstOperationSeqNo == firstOperationSeqNo }
+    fun markers(firstOperationSeqNo: Int): List<Marker> {
+        val matches = mutableListOf<Marker>()
+        markers.forEach {
+            if (it.firstOperationSeqNo == firstOperationSeqNo) {
+                matches.add(it)
+            }
+        }
+        return matches
+    }
 
     fun marker(markerName: String): Marker? =
         markers
@@ -288,7 +303,7 @@ data class TrackedHeap(
             symbol: Char,
         ): String {
             val builder = StringBuilder()
-            marker(rowOperations.seqNo)?.let {
+            markers(rowOperations.seqNo).forEach {
                 builder.appendLine(plotMarker(it.name, columns))
             }
 
@@ -308,7 +323,7 @@ data class TrackedHeap(
             val markerEndSeqNo = min(rowOperations.seqNo + rowOperations.count - 1, rowOperations.plotRange.last)
             val markerRange = rowOperations.seqNo + 1..markerEndSeqNo
             for (skippedSeqNo in markerRange) {
-                marker(skippedSeqNo)?.let {
+                markers(skippedSeqNo).forEach {
                     builder.appendLine(plotMarker(it.name, columns))
                 }
             }
@@ -356,7 +371,7 @@ data class TrackedHeap(
         }
 
         // print potential terminating markers
-        marker(operationRange.last + 1)?.let {
+        markers(operationRange.last + 1).forEach {
             builder.appendLine(plotMarker(it.name, dimensions.columns))
         }
 
