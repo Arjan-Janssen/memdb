@@ -87,6 +87,9 @@ class TrackedHeapBuilderTest {
     }
 }
 
+const val DEFAULT_TEST_COLUMNS = 20
+const val DEFAULT_TEST_ROWS = 20
+
 class TrackedHeapTest {
     private fun createTrackedHeap() =
         TrackedHeap(
@@ -105,7 +108,7 @@ class TrackedHeapTest {
                     HeapOperationKind.Dealloc,
                     durationSinceServerStart = 400.toDuration(DurationUnit.MILLISECONDS),
                     address = 10,
-                    size = 1,
+                    size = 2,
                     threadId = 6,
                     backtrace = "dealloc backtrace",
                 ),
@@ -123,7 +126,7 @@ class TrackedHeapTest {
         val expectedString =
 """heap operations:
   alloc[seq no: 0, kind: Alloc, duration: 200ms, address: 00000002, size: 4, thread id: 5, backtrace: (hidden)] -> 4
-  dealloc[seq no: 1, kind: Dealloc, duration: 400ms, address: 0000000a, size: 1, thread id: 6, backtrace: (hidden)] -> 3
+  dealloc[seq no: 1, kind: Dealloc, duration: 400ms, address: 0000000a, size: 2, thread id: 6, backtrace: (hidden)] -> 2
 
 markers:
   marker[name: begin, seq-no: 0]
@@ -148,13 +151,13 @@ markers:
      begin: --------------------
          0: ####################
        end: --------------------
-         1: ###############
+         1: ##########
 """
         assertEquals(
             expectedGraph,
             trackedHeap.plotGraph(
                 IntRange(0, 1),
-                TrackedHeap.PlotDimensions(20, 2),
+                TrackedHeap.PlotDimensions(DEFAULT_TEST_COLUMNS, DEFAULT_TEST_ROWS),
             ),
         )
     }
@@ -165,14 +168,35 @@ markers:
         val expectedGraph =
             """ allocated->                    <-4
        end: --------------------
-         1: ###############
+         1: ##########
 """
         assertEquals(
             expectedGraph,
             trackedHeap.plotGraph(
                 IntRange(1, 1),
-                TrackedHeap.PlotDimensions(20, 2),
+                TrackedHeap.PlotDimensions(DEFAULT_TEST_COLUMNS, DEFAULT_TEST_ROWS),
             ),
         )
     }
+
+
+    @Test
+    fun plotGraphHalfColumns() {
+        val trackedHeap = createTrackedHeap()
+        val expectedGraph =
+            """ allocated->          <-4
+     begin: ----------
+         0: ##########
+       end: ----------
+         1: #####
+"""
+        assertEquals(
+            expectedGraph,
+            trackedHeap.plotGraph(
+                IntRange(0, 1),
+                TrackedHeap.PlotDimensions(DEFAULT_TEST_ROWS shr 1, 2),
+            ),
+        )
+    }
+
 }
