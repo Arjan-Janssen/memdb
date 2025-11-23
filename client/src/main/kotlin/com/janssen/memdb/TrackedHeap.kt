@@ -102,8 +102,6 @@ data class TrackedHeap(
         val range: IntRange,
     ) {
         companion object {
-            fun wholeRangeStr(trackedHeap: TrackedHeap) = "0..${trackedHeap.heapOperations.size}"
-
             fun wholeRangeInclusiveStr(trackedHeap: TrackedHeap) = "0..${trackedHeap.heapOperations.size - 1}"
 
             fun fromIntRange(
