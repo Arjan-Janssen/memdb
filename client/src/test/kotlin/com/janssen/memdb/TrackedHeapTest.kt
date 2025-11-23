@@ -458,8 +458,8 @@ class TrackedHeapTest {
         val trackedHeap = createMatchingAllocDeallocPair()
         val expectedString =
 """heap operations:
-  alloc[seq no: 0, kind: Alloc, duration: 200ms, address: 00000002, size: 4, thread id: 5, backtrace: (hidden)] -> 4
-  dealloc[seq no: 1, kind: Dealloc, duration: 400ms, address: 00000002, size: 4, thread id: 6, backtrace: (hidden)] -> 0
+  alloc[seq no: 0, kind: Alloc, duration: 200ms, address: 00000002, size: 4, thread id: 5, backtrace: <hidden>] -> 4
+  dealloc[seq no: 1, kind: Dealloc, duration: 400ms, address: 00000002, size: 4, thread id: 6, backtrace: <hidden>] -> 0
 
 markers:
   marker[name: begin, seq-no: 0]

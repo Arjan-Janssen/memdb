@@ -86,7 +86,7 @@ data class HeapOperation(
                     address.toHexString(),
                 ),
             ).append("size: $size, thread id: $threadId, ")
-            .append("backtrace: ${if (showBacktrace) backtrace else "(hidden)"}")
+            .append("backtrace:${if (showBacktrace) "\n" + backtrace else " <hidden>"}")
             .append("]")
             .toString()
 

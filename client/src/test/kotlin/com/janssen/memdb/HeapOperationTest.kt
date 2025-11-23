@@ -93,4 +93,27 @@ class HeapOperationTest {
         val roundTripDealloc = HeapOperation.fromProtobuf(dealloc.seqNo, HeapOperation.toProtobuf(dealloc))
         assertEquals(dealloc, roundTripDealloc)
     }
+
+    @Test
+    fun `toString is readable and contains all data`() {
+        val seqNo = 20
+        val dealloc =
+            HeapOperation
+                .Builder(seqNo)
+                .dealloc(2)
+                .threadId(4)
+                .sinceServerStart(200.toDuration(DurationUnit.MILLISECONDS))
+                .backtrace("expected backtrace")
+                .build()
+
+        val expectedStringBacktrace =
+"""dealloc[seq no: 20, kind: Dealloc, duration: 200ms, address: 00000002, size: 0, thread id: 4, backtrace:
+expected backtrace]"""
+        assertEquals(expectedStringBacktrace, dealloc.toString(true))
+
+        val expectedStringNoBacktrace =
+            "dealloc[seq no: 20, kind: Dealloc, duration: 200ms, " +
+                "address: 00000002, size: 0, thread id: 4, backtrace: <hidden>]"
+        assertEquals(expectedStringNoBacktrace, dealloc.toString(false))
+    }
 }
