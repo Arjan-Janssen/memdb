@@ -2,43 +2,25 @@ package com.janssen.memdb
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 class DiffTest {
-    // creates a tracked heap with a single added and a single removed operation
-    private fun createTrackedHeap() =
-        TrackedHeap(
-            listOf(
-                HeapOperation(
-                    0,
-                    HeapOperationKind.Alloc,
-                    durationSinceServerStart = 200.toDuration(DurationUnit.MILLISECONDS),
-                    address = 2,
-                    size = 4,
-                    threadId = 5,
-                    backtrace = "alloc backtrace",
-                ),
-                HeapOperation(
-                    1,
-                    HeapOperationKind.Dealloc,
-                    durationSinceServerStart = 400.toDuration(DurationUnit.MILLISECONDS),
-                    address = 10,
-                    size = 2,
-                    threadId = 6,
-                    backtrace = "dealloc backtrace",
-                ),
-            ),
-            markers =
-                listOf(
-                    Marker(0, "begin"),
-                    Marker(1, "end"),
-                ),
-        )
+    private fun createMatchedAllocAndDeallocScenario() =
+        TrackedHeap
+            .Builder()
+            .addHeapOperation(HeapOperation.Builder().alloc(5, 2))
+            .addHeapOperation(HeapOperation.Builder().dealloc(5))
+            .build()
+
+    private fun createMismatchedAllocAndDeallocScenario() =
+        TrackedHeap
+            .Builder()
+            .addHeapOperation(HeapOperation.Builder().alloc(1, 2))
+            .addHeapOperation(HeapOperation.Builder().dealloc(2))
+            .build()
 
     @Test
-    fun `compute diff with single added operation`() {
-        val trackedHeap = createTrackedHeap()
+    fun `compute diff with single alloc operation`() {
+        val trackedHeap = createMismatchedAllocAndDeallocScenario()
         val diff = Diff.compute(trackedHeap, "0..1")
         assertEquals(1, diff.added.size)
         assertEquals(trackedHeap.heapOperations.first(), diff.added.first())
@@ -46,8 +28,8 @@ class DiffTest {
     }
 
     @Test
-    fun `compute diff with single removed operation`() {
-        val trackedHeap = createTrackedHeap()
+    fun `compute diff with single dealloc operation`() {
+        val trackedHeap = createMismatchedAllocAndDeallocScenario()
         val diff = Diff.compute(trackedHeap, "1..2")
         assertEquals(0, diff.added.size)
         assertEquals(1, diff.removed.size)
@@ -55,8 +37,8 @@ class DiffTest {
     }
 
     @Test
-    fun `compute diff with single added and single removed operation`() {
-        val trackedHeap = createTrackedHeap()
+    fun `compute diff with mismatched alloc and dealloc operation`() {
+        val trackedHeap = createMismatchedAllocAndDeallocScenario()
         val diff = Diff.compute(trackedHeap, "0..2")
         assertEquals(1, diff.added.size)
         assertEquals(trackedHeap.heapOperations.first(), diff.added.first())
@@ -65,8 +47,16 @@ class DiffTest {
     }
 
     @Test
-    fun `compute reversed diff with single removed operation`() {
-        val trackedHeap = createTrackedHeap()
+    fun `compute diff with matched alloc and dealloc operation`() {
+        val trackedHeap = createMatchedAllocAndDeallocScenario()
+        val diff = Diff.compute(trackedHeap, "0..2")
+        assertEquals(0, diff.added.size)
+        assertEquals(0, diff.removed.size)
+    }
+
+    @Test
+    fun `compute reversed diff with single dealloc operation`() {
+        val trackedHeap = createMismatchedAllocAndDeallocScenario()
         val diff = Diff.compute(trackedHeap, "1..0")
         assertEquals(0, diff.added.size)
         assertEquals(1, diff.removed.size)
@@ -74,8 +64,8 @@ class DiffTest {
     }
 
     @Test
-    fun `compute reversed diff with single added operation`() {
-        val trackedHeap = createTrackedHeap()
+    fun `compute reversed diff with single alloc operation`() {
+        val trackedHeap = createMismatchedAllocAndDeallocScenario()
         val diff = Diff.compute(trackedHeap, "2..1")
         assertEquals(1, diff.added.size)
         assertEquals(trackedHeap.heapOperations.last(), diff.added.first())
