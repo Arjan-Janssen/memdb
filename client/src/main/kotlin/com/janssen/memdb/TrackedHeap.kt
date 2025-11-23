@@ -205,6 +205,9 @@ data class TrackedHeap(
             columns: Int,
             maxHeapSize: Int,
         ): String {
+            require(MIN_GRAPH_COLUMNS <= columns)
+            require(0 <= maxHeapSize)
+
             val builder = StringBuilder()
             builder.append(String.format(Locale.getDefault(), "%10s->", "allocated"))
             repeat(columns) {
@@ -219,6 +222,8 @@ data class TrackedHeap(
             name: String,
             columns: Int,
         ): String {
+            require(MIN_GRAPH_COLUMNS <= columns)
+
             val builder = StringBuilder()
             builder.append(String.format(Locale.getDefault(), "%10s: ", name))
             repeat(columns) {
@@ -227,7 +232,7 @@ data class TrackedHeap(
             return builder.toString()
         }
 
-        fun plotGraphRow(
+        fun plotRow(
             rowOperations: RowOperations,
             columns: Int,
             numSymbols: Int,
@@ -285,7 +290,7 @@ data class TrackedHeap(
         for (rowSeqNo in operationRange step operationsPerRow) {
             val numSymbols = (postOperationHeapSizes[rowSeqNo] * dimensions.columns) / maxHeapSize
             builder.append(
-                plotGraphRow(
+                plotRow(
                     RowOperations(
                         rowSeqNo,
                         operationsPerRow,
@@ -323,7 +328,7 @@ data class TrackedHeap(
     }
 
     companion object {
-        fun concatenate(trackedHeaps: List<TrackedHeap>): TrackedHeap {
+        fun concatenate(vararg trackedHeaps: TrackedHeap): TrackedHeap {
             val builder = Builder()
             trackedHeaps.forEach {
                 builder.addHeapOperations(it.heapOperations)

@@ -119,6 +119,49 @@ class TrackedHeapTest {
                     Marker(1, "end"),
                 ),
         )
+    private fun createFollowingTrackedHeap() =
+        TrackedHeap(
+            listOf(
+                HeapOperation(
+                    2,
+                    HeapOperationKind.Alloc,
+                    durationSinceServerStart = 600.toDuration(DurationUnit.MILLISECONDS),
+                    address = 64,
+                    size = 2,
+                    threadId = 1,
+                    backtrace = "backtrace-2",
+                ),
+                HeapOperation(
+                    3,
+                    HeapOperationKind.Alloc,
+                    durationSinceServerStart = 1000.toDuration(DurationUnit.MILLISECONDS),
+                    address = 128,
+                    size = 2,
+                    threadId = 2,
+                    backtrace = "backtrace-3",
+                ),
+            ),
+            markers =
+                listOf(
+                    Marker(2, "special"),
+                ),
+        )
+
+    @Test
+    fun concatenateJoinsTrackedHeaps() {
+        val trackedHeap0 = createTrackedHeap()
+        val trackedHeap1 = createFollowingTrackedHeap()
+        val concatenated = TrackedHeap.concatenate(trackedHeap0, trackedHeap1)
+        assertEquals(
+            concatenated.heapOperations,
+            trackedHeap0.heapOperations + trackedHeap1.heapOperations,
+        )
+        assertEquals(
+            concatenated.markers,
+            trackedHeap0.markers + trackedHeap1.markers,
+        )
+
+    }
 
     @Test
     fun toStringReturnsReadableString() {
