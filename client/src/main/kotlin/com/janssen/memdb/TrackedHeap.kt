@@ -209,30 +209,46 @@ data class TrackedHeap(
         val rows: Int,
     )
 
+    // Returns for each heap operation the cumulative heap sizes after the operation is
+    // executed and, for deallocations, whether it matches its address with a previous alloc.
+    // Unmatched deallocations are ignored in the cumulative heap size.
+    // Matches are returned in the matches list.
+    data class HeapGraph(
+        val sizes: List<Int>,
+        val matchesAlloc: List<Boolean>,
+    ) {
+        companion object {
+            fun compute(heapOperations: List<HeapOperation>): HeapGraph {
+                val sizes = mutableListOf<Int>()
+                val matches = mutableListOf<Boolean>()
+                var currentHeapSize = 0
+                val knownAllocs = mutableMapOf<Int, HeapOperation>()
+                heapOperations.forEach { op ->
+                    if (op.kind == HeapOperationKind.Alloc) {
+                        currentHeapSize += op.size
+                        knownAllocs[op.address] = op
+                        // allocations always match
+                        matches.add(true)
+                    } else {
+                        val alloc = knownAllocs[op.address]
+                        alloc?.let { alloc ->
+                            currentHeapSize -= alloc.size
+                            knownAllocs.remove(alloc.address)
+                        }
+                        matches.add(alloc != null)
+                    }
+                    sizes.add(currentHeapSize)
+                }
+                return HeapGraph(sizes, matches)
+            }
+        }
+    }
+
     @Suppress("CyclomaticComplexMethod")
     fun plotGraph(
         operationRange: IntRange,
         dimensions: PlotDimensions,
     ): String {
-        fun computePostOperationHeapSizes(heapOperations: List<HeapOperation>): List<Int> {
-            val heapSizes = mutableListOf<Int>()
-            var currentHeapSize = 0
-            val knownAddresses = mutableSetOf<Int>()
-            heapOperations.forEach {
-                if (it.kind == HeapOperationKind.Alloc) {
-                    currentHeapSize += it.size
-                    knownAddresses.add(it.address)
-                } else {
-                    if (knownAddresses.contains(it.address)) {
-                        currentHeapSize -= it.size
-                        knownAddresses.remove(it.address)
-                    }
-                }
-                heapSizes.addLast(currentHeapSize)
-            }
-            return heapSizes
-        }
-
         fun plotHeading(
             columns: Int,
             maxHeapSize: Int,
@@ -268,6 +284,7 @@ data class TrackedHeap(
             rowOperations: RowOperations,
             columns: Int,
             numSymbols: Int,
+            matchesAlloc: Boolean,
             symbol: Char,
         ): String {
             val builder = StringBuilder()
@@ -275,9 +292,15 @@ data class TrackedHeap(
                 builder.appendLine(plotMarker(it.name, columns))
             }
 
+            if (!matchesAlloc) {
+                builder.append(AnsiColor.RED.code)
+            }
             builder.append(String.format(Locale.getDefault(), "%10d: ", rowOperations.seqNo))
             repeat(numSymbols) {
                 builder.append(symbol)
+            }
+            if (!matchesAlloc) {
+                builder.append(AnsiColor.RESET.code)
             }
             builder.appendLine()
 
@@ -301,8 +324,10 @@ data class TrackedHeap(
 
         val symbol = '#'
 
-        val heapSizes = computePostOperationHeapSizes(heapOperations)
-        val maxHeapSize = heapSizes.slice(operationRange).maxOrNull() ?: 0
+        val heapGraph = HeapGraph.compute(heapOperations)
+        val maxHeapSize = heapGraph.sizes.slice(operationRange).maxOrNull() ?: 0
+        require(0 <= maxHeapSize)
+
         val builder = StringBuilder()
         builder.appendLine(plotHeading(dimensions.columns, maxHeapSize))
 
@@ -313,7 +338,8 @@ data class TrackedHeap(
         }
         val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
         for (rowSeqNo in operationRange step operationsPerRow) {
-            val numSymbols = (heapSizes[rowSeqNo] * dimensions.columns) / maxHeapSize
+            val numSymbols = if (maxHeapSize > 0) (heapGraph.sizes[rowSeqNo] * dimensions.columns) / maxHeapSize else 0
+            val matchesAlloc = heapGraph.matchesAlloc[rowSeqNo]
             builder.append(
                 plotRow(
                     RowOperations(
@@ -323,6 +349,7 @@ data class TrackedHeap(
                     ),
                     dimensions.columns,
                     numSymbols,
+                    matchesAlloc,
                     symbol,
                 ),
             )

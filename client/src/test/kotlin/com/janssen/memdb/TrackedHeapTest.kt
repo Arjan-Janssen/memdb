@@ -264,7 +264,7 @@ const val DEFAULT_TEST_COLUMNS = 20
 const val DEFAULT_TEST_ROWS = 20
 
 class TrackedHeapTest {
-    private fun createTrackedHeap() =
+    private fun createMatchingAllocDeallocPair() =
         TrackedHeap(
             listOf(
                 HeapOperation(
@@ -281,7 +281,7 @@ class TrackedHeapTest {
                     HeapOperationKind.Dealloc,
                     durationSinceServerStart = 400.toDuration(DurationUnit.MILLISECONDS),
                     address = 2,
-                    size = 2,
+                    size = 4,
                     threadId = 6,
                     backtrace = "dealloc backtrace",
                 ),
@@ -291,6 +291,23 @@ class TrackedHeapTest {
                     Marker(0, "begin"),
                     Marker(1, "end"),
                 ),
+        )
+
+    private fun createMismatchedDealloc() =
+        TrackedHeap(
+            listOf(
+                HeapOperation(
+                    0,
+                    HeapOperationKind.Dealloc,
+                    durationSinceServerStart = 400.toDuration(DurationUnit.MILLISECONDS),
+                    address = 2,
+                    size = 4,
+                    threadId = 6,
+                    backtrace = "dealloc backtrace",
+                ),
+            ),
+            markers =
+                emptyList<Marker>(),
         )
 
     private fun createFollowingTrackedHeap() =
@@ -323,25 +340,25 @@ class TrackedHeapTest {
 
     @Test
     fun `rangeStartPosition with valid marker name`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         assertEquals(1, trackedHeap.rangeStartPosition("end"))
     }
 
     @Test
     fun `rangeStartPosition with invalid marker name`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         assertNull(trackedHeap.rangeStartPosition("arjan"))
     }
 
     @Test
     fun `rangeStartPosition with valid index`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         assertEquals(0, trackedHeap.rangeStartPosition("0"))
     }
 
     @Test
     fun `rangeStartPosition with invalid index`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         // Invalid indices are permitted. The function does not do range checking
         assertEquals(1982, trackedHeap.rangeStartPosition("1982"))
         assertEquals(-1, trackedHeap.rangeStartPosition("-1"))
@@ -349,25 +366,25 @@ class TrackedHeapTest {
 
     @Test
     fun `rangeEndPosition with valid marker name`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         assertEquals(0, trackedHeap.rangeEndPosition("end", false))
     }
 
     @Test
     fun `rangeEndPosition with invalid marker name`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         assertNull(trackedHeap.rangeEndPosition("arjan", false))
     }
 
     @Test
     fun `rangeEndPosition with valid index`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         assertEquals(1, trackedHeap.rangeEndPosition("1", false))
     }
 
     @Test
     fun `rangeEndPosition with invalid index`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         // Invalid indices are permitted. The function does not do range checking
         assertEquals(1982, trackedHeap.rangeEndPosition("1982", false))
         assertEquals(-1, trackedHeap.rangeEndPosition("-1", false))
@@ -375,7 +392,7 @@ class TrackedHeapTest {
 
     @Test
     fun `concatenate with 2 tracked heaps`() {
-        val trackedHeap0 = createTrackedHeap()
+        val trackedHeap0 = createMatchingAllocDeallocPair()
         val trackedHeap1 = createFollowingTrackedHeap()
         val concatenated = TrackedHeap.concatenate(listOf(trackedHeap0, trackedHeap1))
         assertEquals(
@@ -390,7 +407,7 @@ class TrackedHeapTest {
 
     @Test
     fun `truncate with single element range`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         val truncatedHeap =
             TrackedHeap.truncate(
                 TrackedHeap.Range.fromIntRange(
@@ -404,7 +421,7 @@ class TrackedHeapTest {
 
     @Test
     fun `marker with valid name`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         val validName = "begin"
         val marker = trackedHeap.marker(validName)
         assertNotNull(marker)
@@ -413,14 +430,14 @@ class TrackedHeapTest {
 
     @Test
     fun `marker with invalid name`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         val invalidName = "invalid"
         assertNull(trackedHeap.marker(invalidName))
     }
 
     @Test
     fun `marker with valid sequence number`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         val validSeqNo = 0
         val marker = trackedHeap.marker(validSeqNo)
         assertNotNull(marker)
@@ -430,18 +447,18 @@ class TrackedHeapTest {
 
     @Test
     fun `marker with invalid sequence number`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         val invalidSeqNo = 1982
         assertNull(trackedHeap.marker(invalidSeqNo))
     }
 
     @Test
     fun `toString returns a readable string`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         val expectedString =
 """heap operations:
   alloc[seq no: 0, kind: Alloc, duration: 200ms, address: 00000002, size: 4, thread id: 5, backtrace: (hidden)] -> 4
-  dealloc[seq no: 1, kind: Dealloc, duration: 400ms, address: 00000002, size: 2, thread id: 6, backtrace: (hidden)] -> 2
+  dealloc[seq no: 1, kind: Dealloc, duration: 400ms, address: 00000002, size: 4, thread id: 6, backtrace: (hidden)] -> 0
 
 markers:
   marker[name: begin, seq-no: 0]
@@ -451,7 +468,7 @@ markers:
 
     @Test
     fun `protobuf round-trip commutes`() {
-        val expectedTrackedHeap = createTrackedHeap()
+        val expectedTrackedHeap = createMatchingAllocDeallocPair()
         assertEquals(
             expectedTrackedHeap,
             TrackedHeap.fromProtobuf(expectedTrackedHeap.toProtobuf()),
@@ -460,13 +477,13 @@ markers:
 
     @Test
     fun `plotGraph with full range`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         val expectedGraph =
 """ allocated->                    <-4
      begin: --------------------
          0: ####################
        end: --------------------
-         1: ##########
+         1: 
 """
         assertEquals(
             expectedGraph,
@@ -479,30 +496,47 @@ markers:
 
     @Test
     fun `plotGraph with smaller sub-range`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         val expectedGraph =
-            """ allocated->                    <-2
+""" allocated->                    <-4
+     begin: --------------------
+         0: ####################
        end: --------------------
-         1: ####################
 """
         assertEquals(
             expectedGraph,
             trackedHeap.plotGraph(
-                IntRange(1, 1),
+                IntRange(0, 0),
                 TrackedHeap.PlotDimensions(DEFAULT_TEST_COLUMNS, DEFAULT_TEST_ROWS),
             ),
         )
     }
 
     @Test
+    fun `plotGraph with mismatching dealloc colors the memory bar`() {
+        val trackedHeap = createMismatchedDealloc()
+        val expectedGraph =
+            """ allocated->          <-0
+${AnsiColor.RED.code}         0: ${AnsiColor.RESET.code}
+"""
+        assertEquals(
+            expectedGraph,
+            trackedHeap.plotGraph(
+                IntRange(0, 0),
+                TrackedHeap.PlotDimensions(DEFAULT_TEST_ROWS shr 1, 2),
+            ),
+        )
+    }
+
+    @Test
     fun `plotGraph with half the number of columns`() {
-        val trackedHeap = createTrackedHeap()
+        val trackedHeap = createMatchingAllocDeallocPair()
         val expectedGraph =
             """ allocated->          <-4
      begin: ----------
          0: ##########
        end: ----------
-         1: #####
+         1: 
 """
         assertEquals(
             expectedGraph,

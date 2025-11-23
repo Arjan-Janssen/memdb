@@ -22,7 +22,7 @@ enum class AnsiColor(
 ) {
     RED("\u001b[31m"),
     GREEN("\u001b[32m"),
-    RESET("\u001b[37m"),
+    RESET("\u001b[0m"),
     ;
 
     override fun toString(): String = code
