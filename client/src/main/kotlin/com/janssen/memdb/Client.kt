@@ -38,6 +38,6 @@ class Client {
             }
         }
 
-        return TrackedHeap.concatenate(*trackedHeaps.toTypedArray())
+        return TrackedHeap.concatenate(trackedHeaps)
     }
 }

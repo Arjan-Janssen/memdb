@@ -119,6 +119,7 @@ class TrackedHeapTest {
                     Marker(1, "end"),
                 ),
         )
+
     private fun createFollowingTrackedHeap() =
         TrackedHeap(
             listOf(
@@ -148,10 +149,10 @@ class TrackedHeapTest {
         )
 
     @Test
-    fun concatenateJoinsTrackedHeaps() {
+    fun concatenateTwoTrackedHeaps() {
         val trackedHeap0 = createTrackedHeap()
         val trackedHeap1 = createFollowingTrackedHeap()
-        val concatenated = TrackedHeap.concatenate(trackedHeap0, trackedHeap1)
+        val concatenated = TrackedHeap.concatenate(listOf(trackedHeap0, trackedHeap1))
         assertEquals(
             concatenated.heapOperations,
             trackedHeap0.heapOperations + trackedHeap1.heapOperations,
@@ -160,7 +161,20 @@ class TrackedHeapTest {
             concatenated.markers,
             trackedHeap0.markers + trackedHeap1.markers,
         )
+    }
 
+    @Test
+    fun truncateSingleItemRange() {
+        val trackedHeap = createTrackedHeap()
+        val truncatedHeap =
+            TrackedHeap.truncate(
+                TrackedHeap.Range.fromIntRange(
+                    trackedHeap,
+                    IntRange(1, 1),
+                ),
+            )
+        assertEquals(1, truncatedHeap.heapOperations.size)
+        assertEquals(trackedHeap.heapOperations[1], truncatedHeap.heapOperations[0])
     }
 
     @Test
@@ -222,7 +236,6 @@ markers:
         )
     }
 
-
     @Test
     fun plotGraphHalfColumns() {
         val trackedHeap = createTrackedHeap()
@@ -241,5 +254,4 @@ markers:
             ),
         )
     }
-
 }

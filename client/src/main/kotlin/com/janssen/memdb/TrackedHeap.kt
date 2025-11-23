@@ -328,7 +328,7 @@ data class TrackedHeap(
     }
 
     companion object {
-        fun concatenate(vararg trackedHeaps: TrackedHeap): TrackedHeap {
+        fun concatenate(trackedHeaps: List<TrackedHeap>): TrackedHeap {
             val builder = Builder()
             trackedHeaps.forEach {
                 builder.addHeapOperations(it.heapOperations)
