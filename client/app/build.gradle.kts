@@ -5,7 +5,6 @@ plugins {
     kotlin("jvm") version ("2.2.20")
     alias(libs.plugins.arturbosch.detekt)
     alias(libs.plugins.jlleitschuh.ktlint)
-    alias(libs.plugins.dorongold.tasktree)
     application
 }
 
