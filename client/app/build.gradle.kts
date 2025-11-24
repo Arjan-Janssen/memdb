@@ -34,7 +34,6 @@ kotlin {
     }
 }
 
-
 tasks.withType<Jar> {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {

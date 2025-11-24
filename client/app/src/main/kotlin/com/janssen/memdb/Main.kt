@@ -9,24 +9,7 @@ import java.io.FileNotFoundException
 import java.net.ConnectException
 import java.net.UnknownHostException
 
-const val DEFAULT_CONNECTION_PORT = 89897
-const val DEFAULT_PLOT_COLUMNS = 100
-const val DEFAULT_PLOT_ROWS = 40
-const val DEFAULT_PLOT_LAYOUT_COLUMNS = 15
-const val DEFAULT_PLOT_LAYOUT_ROWS = 40
 const val APP_NAME = "memdb"
-const val NO_DIFF = "<no diff>"
-
-enum class AnsiColor(
-    val code: String,
-) {
-    RED("\u001b[31m"),
-    GREEN("\u001b[32m"),
-    RESET("\u001b[0m"),
-    ;
-
-    override fun toString(): String = code
-}
 
 class MemDB(
     var trackedHeap: TrackedHeap? = null,

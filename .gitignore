@@ -10,8 +10,10 @@ server/target
 # VSCode temp directory
 .vscode/
 
-# Client build directory
+# Client build directories
 client/build
+client/app/build
+client/lib/build
 
 # Gradle cache
 .gradle
