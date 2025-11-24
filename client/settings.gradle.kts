@@ -6,3 +6,6 @@
  */
 
 rootProject.name = "com.janssen.memdb"
+
+include("app")
+include("lib")

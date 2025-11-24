@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-java -jar $(dirname "$0")/build/libs/com.janssen.memdb-uber.jar ${@:1}
+java -jar $(dirname "$0")/app/build/libs/app-uber.jar ${@:1}
