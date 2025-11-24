@@ -14,9 +14,7 @@ fn main() {
     memdb_lib::server::send_marker("begin");
     growing_vec();
     memdb_lib::server::send_marker("end");
-
     memdb_lib::server::send_terminate();
-
     if server_thread.join().is_err() {
         println!("Unable to join server thread");
     }

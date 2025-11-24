@@ -46,13 +46,10 @@ fn parse_json() {
 
 fn main() {
     let server_thread = memdb_lib::server::run().expect("Unable to run server");
-
     memdb_lib::server::send_marker("begin");
     parse_json();
     memdb_lib::server::send_marker("end");
-
     memdb_lib::server::send_terminate();
-
     if server_thread.join().is_err() {
         println!("Unable to join server thread");
     }
