@@ -1,5 +1,5 @@
-use std::process;
 use serde::Deserialize;
+use std::process;
 
 // Example from:
 // https://stackoverflow.com/questions/30292752/how-do-i-parse-a-json-file
@@ -41,6 +41,7 @@ fn parse_json() {
 
     let person: Person = serde_json::from_str(the_file).expect("JSON was not well-formatted");
     println!("{:?}", person);
+    memdb_lib::server::send_marker("person");
 }
 
 fn main() {

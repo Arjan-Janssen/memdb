@@ -5,6 +5,7 @@ fn growing_vec() {
     for i in 1..10000 {
         growing_vec.push(i);
     }
+    memdb_lib::server::send_marker("on-stack");
 }
 
 fn main() {

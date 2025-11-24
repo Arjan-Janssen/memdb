@@ -1,6 +1,5 @@
 use protobuf::Message;
 use std::{
-    alloc::Layout,
     io::prelude::*,
     net::{TcpListener, TcpStream},
     sync::{
@@ -21,12 +20,13 @@ pub enum HeapOperationKind {
 #[derive(Debug)]
 pub struct HeapOperation {
     pub address: usize,
-    pub layout: Layout,
+    pub size: usize,
     pub thread_id: u64,
     pub kind: HeapOperationKind,
     pub backtrace: String,
 }
 
+#[derive(Debug)]
 pub enum ServerMessage {
     HeapOp(HeapOperation),
     Marker(&'static str),
@@ -52,6 +52,7 @@ pub struct Server {
     sender: SyncSender<ServerMessage>,
     receiver: Receiver<ServerMessage>,
     num_heap_operations_sent: usize,
+    num_bytes_sent: usize,
     start_time: SystemTime,
     terminate: bool,
 }
@@ -62,13 +63,15 @@ pub enum NetworkError {
 
 impl Drop for Server {
     fn drop(&mut self) {
-        self.flush(true);
-        self.stream
-            .shutdown(std::net::Shutdown::Both)
-            .expect("Unable to shutdown TCP communication stream");
+        if let Err(error) = self.flush(true) {
+            println!("Unable to flush heap operations. Error: {error:?}");
+        }
+        if let Err(error) = self.stream.shutdown(std::net::Shutdown::Both) {
+            println!("Unable to shutdown TCP communication stream. Error: {error:?}");
+        }
         println!(
-            "Num heap operations sent: {}",
-            self.num_heap_operations_sent
+            "Num heap operations sent: {}. Num bytes sent: {}",
+            self.num_heap_operations_sent, self.num_bytes_sent
         );
         println!("Closing server...");
     }
@@ -96,6 +99,7 @@ impl Server {
                     sender,
                     receiver,
                     num_heap_operations_sent: 0,
+                    num_bytes_sent: 0,
                     start_time: server_start_time,
                     terminate: false,
                 })
@@ -109,9 +113,8 @@ impl Server {
             return;
         }
 
-        let result = self.sender.send(message);
-        if result.is_err() {
-            println!("Unable to send message to server");
+        if let Err(error) = self.sender.send(message) {
+            println!("Unable to send message to server: {error:?}");
         }
     }
 
@@ -123,20 +126,16 @@ impl Server {
         Err(std::io::Error::other("Unable to establish connection"))
     }
 
-    fn flush(&mut self, end_of_file: bool) {
+    fn flush(&mut self, end_of_file: bool) -> Result<(), std::io::Error> {
         let mut proto_bytes_buffer: Vec<u8> = vec![];
         self.update.end_of_file = end_of_file;
         let _ = self.update.write_to_vec(&mut proto_bytes_buffer);
-        let result = self.stream.write(&proto_bytes_buffer);
-        if result.is_err() {
-            println!("Unable to write heap operations to socket stream! Connection lost?");
-        }
-
+        let num_bytes_written = self.stream.write(&proto_bytes_buffer)?;
         self.num_heap_operations_sent += self.update.heap_operations.len();
+        self.num_bytes_sent += num_bytes_written;
         self.update.clear();
-        self.stream
-            .flush()
-            .expect("Unable to flush heap operation TCP stream");
+        self.stream.flush()?;
+        Ok(())
     }
 
     fn create_proto_heap_op(
@@ -148,7 +147,7 @@ impl Server {
         proto_op.micros_since_server_start =
             duration_since_server_start.as_micros().try_into().unwrap();
         proto_op.address = heap_op.address as i64;
-        proto_op.size = Some(heap_op.layout.size() as i64);
+        proto_op.size = Some(heap_op.size as i64);
         proto_op.thread_id = heap_op.thread_id;
         proto_op.kind = ::protobuf::EnumOrUnknown::new(match heap_op.kind {
             HeapOperationKind::Alloc => generated::message::heap_operation::Kind::Alloc,
@@ -161,10 +160,14 @@ impl Server {
         proto_op
     }
 
-    fn push_heap_op(&mut self, heap_op: HeapOperation) {
-        let duration_since_server_start = SystemTime::now()
-            .duration_since(self.start_time)
-            .expect("Unable to calculate delta time");
+    fn push_heap_op(&mut self, heap_op: HeapOperation) -> Result<(), std::io::Error> {
+        let duration_since_server_start = match SystemTime::now().duration_since(self.start_time) {
+            Ok(duration) => duration,
+            Err(error) => {
+                println!("Unable to get system time: {error:?}. Using 0 milliseconds instead.");
+                Duration::from_millis(0)
+            }
+        };
         self.update.heap_operations.push(Self::create_proto_heap_op(
             duration_since_server_start,
             heap_op,
@@ -174,8 +177,9 @@ impl Server {
         if self.update.heap_operations.iter().count()
             >= self.settings.num_heap_operations_per_message
         {
-            self.flush(false);
+            self.flush(false)?;
         }
+        Ok(())
     }
 
     fn push_marker(&mut self, name: &'static str) {
@@ -186,11 +190,11 @@ impl Server {
         self.update.markers.push(marker);
     }
 
-    fn process(&mut self, message: ServerMessage) {
+    fn process(&mut self, message: ServerMessage) -> Result<(), std::io::Error> {
         match message {
             ServerMessage::HeapOp(heap_op) => self.push_heap_op(heap_op),
-            ServerMessage::Marker(name) => self.push_marker(name),
-            ServerMessage::Terminate => self.terminate = true,
+            ServerMessage::Marker(name) => Ok(self.push_marker(name)),
+            ServerMessage::Terminate => Ok(self.terminate = true),
         }
     }
 
@@ -198,9 +202,13 @@ impl Server {
         while !self.terminate {
             match self.receiver.recv() {
                 Ok(server_message) => {
-                    self.process(server_message);
+                    if let Err(error) = self.process(server_message) {
+                        println!("Unable to process server message. Error: {error:?}",);
+                    }
                 }
-                Err(_) => {}
+                Err(error) => {
+                    println!("Unable to receive message from receiver channel: {error:?}");
+                }
             }
         }
     }
@@ -221,10 +229,9 @@ pub fn run(server_ip_address: IpAddress) -> Result<JoinHandle<()>, std::io::Erro
             match server {
                 Ok(mut server) => {
                     SERVER.store(&mut server, Ordering::Release);
-                    connection_sender
-                        .send(()).unwrap_or_else(|error| {
-                            println!("Could not send connection established message: {error:?}");
-                        });
+                    connection_sender.send(()).unwrap_or_else(|error| {
+                        println!("Could not send connection established message: {error:?}");
+                    });
                     server.run();
                     SERVER.store(std::ptr::null_mut(), Ordering::Release);
                 }
@@ -235,22 +242,21 @@ pub fn run(server_ip_address: IpAddress) -> Result<JoinHandle<()>, std::io::Erro
         });
 
     println!("Waiting for connection...");
-    match connection_receiver.recv() {
-        Ok(()) => {
-            println!("Server connection established!");
-        }
-        Err(error) => {
-            println!("Unable to connect to server: {error:?}");
-        }
+    if let Err(_) = connection_receiver.recv() {
+        return Err(std::io::Error::other(
+            "Unable to receive from server connection channel",
+        ));
     }
+    println!("Server connection established!");
 
     server_thread_id
 }
 
 pub fn run_with_default_address() -> Result<JoinHandle<()>, std::io::Error> {
-    let default_host = "localhost";
-    let default_port = 8989;
-    run(IpAddress{host: default_host, port: default_port})
+    run(IpAddress {
+        host: "127.0.0.1",
+        port: 8989,
+    })
 }
 
 pub static SERVER: AtomicPtr<Server> = AtomicPtr::<Server>::new(std::ptr::null_mut());
@@ -272,4 +278,8 @@ pub fn send_marker(name: &'static str) {
 
 pub fn send_terminate() {
     send_server_message(ServerMessage::Terminate);
+}
+
+pub fn send_heap_operation(heap_operation: HeapOperation) {
+    send_server_message(ServerMessage::HeapOp(heap_operation));
 }

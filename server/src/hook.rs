@@ -42,21 +42,21 @@ unsafe impl GlobalAlloc for TrackedAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let ptr = unsafe { System.alloc(layout) };
         unsafe {
-            self.hook(HeapOperationKind::Alloc, layout, ptr);
+            self.hook(HeapOperationKind::Alloc, layout.size(), ptr);
         }
         ptr
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         unsafe {
-            self.hook(HeapOperationKind::Dealloc, layout, ptr);
+            self.hook(HeapOperationKind::Dealloc, layout.size(), ptr);
         }
         unsafe { System.dealloc(ptr, layout) }
     }
 }
 
 impl TrackedAllocator {
-    unsafe fn hook(&self, kind: HeapOperationKind, layout: Layout, ptr: *mut u8) -> () {
+    unsafe fn hook(&self, kind: HeapOperationKind, size: usize, ptr: *mut u8) -> () {
         let server_ptr = SERVER.load(Ordering::Acquire);
         if server_ptr.is_null() {
             return;
@@ -71,7 +71,7 @@ impl TrackedAllocator {
             let backtrace = backtrace::Backtrace::new();
             (*server_ptr).send(ServerMessage::HeapOp(HeapOperation {
                 address: ptr as usize,
-                layout: layout,
+                size: size,
                 thread_id: gettid::gettid(),
                 kind: kind,
                 backtrace: format!("{backtrace:?}"),
