@@ -6,3 +6,4 @@ const val DEFAULT_PLOT_ROWS = 40
 const val DEFAULT_PLOT_LAYOUT_COLUMNS = 15
 const val DEFAULT_PLOT_LAYOUT_ROWS = 40
 const val NO_DIFF = "<no diff>"
+const val NO_HEAP_OPERATIONS = "<no heap operations>"

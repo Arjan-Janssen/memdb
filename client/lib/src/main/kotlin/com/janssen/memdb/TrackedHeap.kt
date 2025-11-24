@@ -410,6 +410,11 @@ data class TrackedHeap(
         val builder = StringBuilder()
         builder.appendLine(plotHeading(dimensions.columns, maxHeapSize))
 
+        if (heapOperations.isEmpty()) {
+            builder.append(NO_HEAP_OPERATIONS)
+            return builder.toString()
+        }
+
         val numOperations = 1 + (operationRange.last - operationRange.first)
         val clampedRows = if (numOperations < dimensions.rows) numOperations else dimensions.rows
         if (clampedRows == 0) {
@@ -418,9 +423,9 @@ data class TrackedHeap(
         val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
         val plotSymbols =
             PlotSymbols(
-                'X',
-                '>',
-                '<',
+                '#',
+                '+',
+                '-',
             )
         for (rowSeqNo in operationRange step operationsPerRow) {
             val matchesAlloc = heapGraph.matchesAlloc[rowSeqNo]

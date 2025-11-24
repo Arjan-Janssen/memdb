@@ -238,6 +238,10 @@ class MemDB(
         columns: Int,
         rows: Int,
     ) {
+        if (trackedHeap.heapOperations.isEmpty()) {
+            println(NO_HEAP_OPERATIONS)
+            return
+        }
         val range = TrackedHeap.Range.fromString(trackedHeap, rangeSpecStr)
         println("Plot:")
         println(
