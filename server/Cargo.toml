@@ -1,5 +1,5 @@
 [package]
-name = "memdb-server"
+name = "memdb"
 version = "0.1.0"
 edition = "2024"
 
@@ -16,3 +16,15 @@ time = "0.3.44"
 [build-dependencies]
 protobuf-codegen = "3.7.2"
 protoc-bin-vendored = "3.2.0"
+
+[lib]
+name = "memdb_lib"
+path = "src/lib.rs"
+
+[[example]]
+name = "json_parse"
+path = "examples/json_parse.rs"
+
+[[example]]
+name = "growing_vec"
+path = "examples/growing_vec.rs"

@@ -8,8 +8,6 @@ fn growing_vec() {
 }
 
 fn main() {
-    println!("memdb (c) 2025 by Arjan Janssen");
-
     let server_thread = memdb_lib::server::run();
     memdb_lib::server::send_marker("begin");
     growing_vec();
