@@ -482,9 +482,9 @@ markers:
         val expectedGraph =
 """ allocated->                    <-4
      begin: --------------------
-         0: >>>>>>>>>>>>>>>>>>>>
+         0: ${DiffColor.ADD.color.code}>>>>>>>>>>>>>>>>>>>>${AnsiColor.RESET.code}
        end: --------------------
-         1: <<<<<<<<<<<<<<<<<<<<
+         1: ${DiffColor.DEL.color.code}<<<<<<<<<<<<<<<<<<<<${AnsiColor.RESET.code}
 """
         assertEquals(
             expectedGraph,
@@ -501,7 +501,7 @@ markers:
         val expectedGraph =
 """ allocated->                    <-4
      begin: --------------------
-         0: >>>>>>>>>>>>>>>>>>>>
+         0: ${DiffColor.ADD.color.code}>>>>>>>>>>>>>>>>>>>>${AnsiColor.RESET.code}
        end: --------------------
 """
         assertEquals(
@@ -535,9 +535,9 @@ ${AnsiColor.RED.code}         0: ${AnsiColor.RESET.code}
         val expectedGraph =
             """ allocated->          <-4
      begin: ----------
-         0: >>>>>>>>>>
+         0: ${DiffColor.ADD.color.code}>>>>>>>>>>${AnsiColor.RESET.code}
        end: ----------
-         1: <<<<<<<<<<
+         1: ${DiffColor.DEL.color.code}<<<<<<<<<<${AnsiColor.RESET.code}
 """
         assertEquals(
             expectedGraph,

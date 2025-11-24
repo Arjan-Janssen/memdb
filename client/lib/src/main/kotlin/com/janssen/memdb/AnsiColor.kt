@@ -10,3 +10,13 @@ enum class AnsiColor(
 
     override fun toString(): String = code
 }
+
+enum class DiffColor(
+    val color: AnsiColor,
+) {
+    ADD(AnsiColor.GREEN),
+    DEL(AnsiColor.RED),
+    ;
+
+    override fun toString(): String = color.toString()
+}

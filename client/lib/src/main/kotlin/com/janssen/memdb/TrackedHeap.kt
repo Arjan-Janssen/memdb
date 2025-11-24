@@ -339,15 +339,22 @@ data class TrackedHeap(
                 repeat(plotSizes.before) {
                     builder.append(plotSymbols.default)
                 }
+                builder.append(DiffColor.ADD.color.code)
                 repeat(plotSizes.after - plotSizes.before) {
                     builder.append(plotSymbols.alloc)
                 }
+                builder.append(AnsiColor.RESET.code)
             } else {
                 repeat(plotSizes.after) {
                     builder.append(plotSymbols.default)
                 }
-                repeat(plotSizes.before - plotSizes.after) {
-                    builder.append(plotSymbols.dealloc)
+                val sizeChange = plotSizes.before - plotSizes.after
+                if (0 < sizeChange) {
+                    builder.append(DiffColor.DEL.color.code)
+                    repeat(sizeChange) {
+                        builder.append(plotSymbols.dealloc)
+                    }
+                    builder.append(AnsiColor.RESET.code)
                 }
             }
             if (!matchesAlloc) {
@@ -411,7 +418,7 @@ data class TrackedHeap(
         val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
         val plotSymbols =
             PlotSymbols(
-                '#',
+                'X',
                 '>',
                 '<',
             )
