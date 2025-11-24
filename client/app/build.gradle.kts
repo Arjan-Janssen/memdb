@@ -23,8 +23,6 @@ dependencies {
     implementation(project(":lib"))
     implementation(libs.jetbrains.kotlin.stdlib)
     implementation(libs.jetbrains.kotlinx.cli)
-    testImplementation(libs.test.junit.jupiter)
-    testRuntimeOnly(libs.test.junit.launcher)
 }
 
 kotlin {
@@ -54,12 +52,4 @@ tasks.register<Jar>("uberJar") {
             .filter { it.name.endsWith("jar") }
             .map { zipTree(it) }
     })
-}
-
-tasks.named<Test>("test") {
-    useJUnitPlatform()
-    maxHeapSize = "1G"
-    testLogging {
-        events("passed")
-    }
 }
