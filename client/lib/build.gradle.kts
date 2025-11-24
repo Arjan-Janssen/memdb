@@ -13,13 +13,6 @@ repositories {
     mavenCentral()
 }
 
-buildscript {
-    dependencies {
-        classpath(libs.google.protobuf.gradle.plugin)
-        classpath(libs.jetbrains.kotlin.gradle.plugin)
-    }
-}
-
 dependencies {
     implementation(libs.google.protobuf.kotlin)
     implementation(libs.jetbrains.kotlin.stdlib)

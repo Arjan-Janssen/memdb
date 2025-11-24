@@ -12,12 +12,6 @@ repositories {
     mavenCentral()
 }
 
-buildscript {
-    dependencies {
-        classpath(libs.jetbrains.kotlin.gradle.plugin)
-    }
-}
-
 dependencies {
     implementation(project(":lib"))
     implementation(libs.jetbrains.kotlin.stdlib)
