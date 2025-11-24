@@ -24,24 +24,24 @@
 /// of protobuf runtime.
 const _PROTOBUF_VERSION_CHECK: () = ::protobuf::VERSION_3_7_2;
 
-// @@protoc_insertion_point(message:heap_tracker.HeapOperation)
+// @@protoc_insertion_point(message:memdb.HeapOperation)
 #[derive(PartialEq,Clone,Default,Debug)]
 pub struct HeapOperation {
     // message fields
-    // @@protoc_insertion_point(field:heap_tracker.HeapOperation.kind)
+    // @@protoc_insertion_point(field:memdb.HeapOperation.kind)
     pub kind: ::protobuf::EnumOrUnknown<heap_operation::Kind>,
-    // @@protoc_insertion_point(field:heap_tracker.HeapOperation.micros_since_server_start)
+    // @@protoc_insertion_point(field:memdb.HeapOperation.micros_since_server_start)
     pub micros_since_server_start: i64,
-    // @@protoc_insertion_point(field:heap_tracker.HeapOperation.address)
+    // @@protoc_insertion_point(field:memdb.HeapOperation.address)
     pub address: i64,
-    // @@protoc_insertion_point(field:heap_tracker.HeapOperation.size)
+    // @@protoc_insertion_point(field:memdb.HeapOperation.size)
     pub size: ::std::option::Option<i64>,
-    // @@protoc_insertion_point(field:heap_tracker.HeapOperation.thread_id)
+    // @@protoc_insertion_point(field:memdb.HeapOperation.thread_id)
     pub thread_id: u64,
-    // @@protoc_insertion_point(field:heap_tracker.HeapOperation.backtrace)
+    // @@protoc_insertion_point(field:memdb.HeapOperation.backtrace)
     pub backtrace: ::std::string::String,
     // special fields
-    // @@protoc_insertion_point(special_field:heap_tracker.HeapOperation.special_fields)
+    // @@protoc_insertion_point(special_field:memdb.HeapOperation.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
 }
 
@@ -239,11 +239,11 @@ impl ::protobuf::reflect::ProtobufValue for HeapOperation {
 /// Nested message and enums of message `HeapOperation`
 pub mod heap_operation {
     #[derive(Clone,Copy,PartialEq,Eq,Debug,Hash)]
-    // @@protoc_insertion_point(enum:heap_tracker.HeapOperation.Kind)
+    // @@protoc_insertion_point(enum:memdb.HeapOperation.Kind)
     pub enum Kind {
-        // @@protoc_insertion_point(enum_value:heap_tracker.HeapOperation.Kind.Alloc)
+        // @@protoc_insertion_point(enum_value:memdb.HeapOperation.Kind.Alloc)
         Alloc = 0,
-        // @@protoc_insertion_point(enum_value:heap_tracker.HeapOperation.Kind.Dealloc)
+        // @@protoc_insertion_point(enum_value:memdb.HeapOperation.Kind.Dealloc)
         Dealloc = 1,
     }
 
@@ -301,16 +301,16 @@ pub mod heap_operation {
     }
 }
 
-// @@protoc_insertion_point(message:heap_tracker.Marker)
+// @@protoc_insertion_point(message:memdb.Marker)
 #[derive(PartialEq,Clone,Default,Debug)]
 pub struct Marker {
     // message fields
-    // @@protoc_insertion_point(field:heap_tracker.Marker.first_operation_seq_no)
+    // @@protoc_insertion_point(field:memdb.Marker.first_operation_seq_no)
     pub first_operation_seq_no: i64,
-    // @@protoc_insertion_point(field:heap_tracker.Marker.name)
+    // @@protoc_insertion_point(field:memdb.Marker.name)
     pub name: ::std::string::String,
     // special fields
-    // @@protoc_insertion_point(special_field:heap_tracker.Marker.special_fields)
+    // @@protoc_insertion_point(special_field:memdb.Marker.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
 }
 
@@ -441,18 +441,18 @@ impl ::protobuf::reflect::ProtobufValue for Marker {
     type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
 }
 
-// @@protoc_insertion_point(message:heap_tracker.Update)
+// @@protoc_insertion_point(message:memdb.Update)
 #[derive(PartialEq,Clone,Default,Debug)]
 pub struct Update {
     // message fields
-    // @@protoc_insertion_point(field:heap_tracker.Update.heap_operations)
+    // @@protoc_insertion_point(field:memdb.Update.heap_operations)
     pub heap_operations: ::std::vec::Vec<HeapOperation>,
-    // @@protoc_insertion_point(field:heap_tracker.Update.markers)
+    // @@protoc_insertion_point(field:memdb.Update.markers)
     pub markers: ::std::vec::Vec<Marker>,
-    // @@protoc_insertion_point(field:heap_tracker.Update.end_of_file)
+    // @@protoc_insertion_point(field:memdb.Update.end_of_file)
     pub end_of_file: bool,
     // special fields
-    // @@protoc_insertion_point(special_field:heap_tracker.Update.special_fields)
+    // @@protoc_insertion_point(special_field:memdb.Update.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
 }
 
@@ -602,20 +602,19 @@ impl ::protobuf::reflect::ProtobufValue for Update {
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\rmessage.proto\x12\x0cheap_tracker\"\x97\x02\n\rHeapOperation\x124\n\
-    \x04kind\x18\x01\x20\x01(\x0e2\x20.heap_tracker.HeapOperation.KindR\x04k\
-    ind\x129\n\x19micros_since_server_start\x18\x02\x20\x01(\x03R\x16microsS\
-    inceServerStart\x12\x18\n\x07address\x18\x03\x20\x01(\x03R\x07address\
-    \x12\x17\n\x04size\x18\x04\x20\x01(\x03H\0R\x04size\x88\x01\x01\x12\x1b\
-    \n\tthread_id\x18\x05\x20\x01(\x04R\x08threadId\x12\x1c\n\tbacktrace\x18\
-    \x06\x20\x01(\tR\tbacktrace\"\x1e\n\x04Kind\x12\t\n\x05Alloc\x10\0\x12\
-    \x0b\n\x07Dealloc\x10\x01B\x07\n\x05_size\"Q\n\x06Marker\x123\n\x16first\
-    _operation_seq_no\x18\x01\x20\x01(\x03R\x13firstOperationSeqNo\x12\x12\n\
-    \x04name\x18\x02\x20\x01(\tR\x04name\"\x9e\x01\n\x06Update\x12D\n\x0fhea\
-    p_operations\x18\x01\x20\x03(\x0b2\x1b.heap_tracker.HeapOperationR\x0ehe\
-    apOperations\x12.\n\x07markers\x18\x02\x20\x03(\x0b2\x14.heap_tracker.Ma\
-    rkerR\x07markers\x12\x1e\n\x0bend_of_file\x18\x03\x20\x01(\x08R\tendOfFi\
-    leb\x06proto3\
+    \n\rmessage.proto\x12\x05memdb\"\x90\x02\n\rHeapOperation\x12-\n\x04kind\
+    \x18\x01\x20\x01(\x0e2\x19.memdb.HeapOperation.KindR\x04kind\x129\n\x19m\
+    icros_since_server_start\x18\x02\x20\x01(\x03R\x16microsSinceServerStart\
+    \x12\x18\n\x07address\x18\x03\x20\x01(\x03R\x07address\x12\x17\n\x04size\
+    \x18\x04\x20\x01(\x03H\0R\x04size\x88\x01\x01\x12\x1b\n\tthread_id\x18\
+    \x05\x20\x01(\x04R\x08threadId\x12\x1c\n\tbacktrace\x18\x06\x20\x01(\tR\
+    \tbacktrace\"\x1e\n\x04Kind\x12\t\n\x05Alloc\x10\0\x12\x0b\n\x07Dealloc\
+    \x10\x01B\x07\n\x05_size\"Q\n\x06Marker\x123\n\x16first_operation_seq_no\
+    \x18\x01\x20\x01(\x03R\x13firstOperationSeqNo\x12\x12\n\x04name\x18\x02\
+    \x20\x01(\tR\x04name\"\x90\x01\n\x06Update\x12=\n\x0fheap_operations\x18\
+    \x01\x20\x03(\x0b2\x14.memdb.HeapOperationR\x0eheapOperations\x12'\n\x07\
+    markers\x18\x02\x20\x03(\x0b2\r.memdb.MarkerR\x07markers\x12\x1e\n\x0ben\
+    d_of_file\x18\x03\x20\x01(\x08R\tendOfFileb\x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
