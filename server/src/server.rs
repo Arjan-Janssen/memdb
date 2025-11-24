@@ -33,9 +33,15 @@ pub enum ServerMessage {
     Terminate,
 }
 
+pub struct IpAddress {
+    host: &'static str,
+    port: u16,
+}
+
 pub struct Settings {
     num_heap_operations_per_message: usize,
     store_backtrace: bool,
+    ip_address: IpAddress,
 }
 
 pub struct Server {
@@ -69,7 +75,7 @@ impl Drop for Server {
 }
 
 impl Server {
-    pub fn new(settings: Settings) -> Result<Server, NetworkError> {
+    pub fn new(settings: Settings) -> Result<Server, std::io::Error> {
         let (sender, receiver) = mpsc::sync_channel::<ServerMessage>(1 as usize);
 
         let mut update = generated::message::Update::new();
@@ -77,7 +83,7 @@ impl Server {
             .heap_operations
             .reserve(settings.num_heap_operations_per_message);
 
-        match Self::establish_connection() {
+        match Self::establish_connection(&settings.ip_address) {
             Ok(stream) => {
                 let server_thread_id = thread::current().id();
                 let server_start_time = SystemTime::now();
@@ -105,16 +111,16 @@ impl Server {
 
         let result = self.sender.send(message);
         if result.is_err() {
-            println!("Send error");
+            println!("Unable to send message to server");
         }
     }
 
-    fn establish_connection() -> Result<TcpStream, NetworkError> {
-        let listener = TcpListener::bind("127.0.0.1:8989").unwrap();
+    fn establish_connection(ip_address: &IpAddress) -> Result<TcpStream, std::io::Error> {
+        let listener = TcpListener::bind(format!("{}:{}", ip_address.host, ip_address.port))?;
         for stream in listener.incoming() {
-            return Ok(stream.unwrap());
+            return Ok(stream?);
         }
-        Err(NetworkError::ConnectionError)
+        Err(std::io::Error::other("Unable to establish connection"))
     }
 
     fn flush(&mut self, end_of_file: bool) {
@@ -200,39 +206,51 @@ impl Server {
     }
 }
 
-pub fn run() -> Result<JoinHandle<()>, std::io::Error> {
+pub fn run(server_ip_address: IpAddress) -> Result<JoinHandle<()>, std::io::Error> {
     let (connection_sender, connection_receiver) = channel();
 
     let server_thread_id = thread::Builder::new()
-        .name("heap-tracker".to_string())
+        .name("memdb-server".to_string())
         .spawn(move || {
             println!("Server thread started!");
             let server = Server::new(Settings {
                 num_heap_operations_per_message: 64,
                 store_backtrace: true,
+                ip_address: server_ip_address,
             });
             match server {
                 Ok(mut server) => {
                     SERVER.store(&mut server, Ordering::Release);
                     connection_sender
-                        .send(())
-                        .expect("Could not send connection established message");
+                        .send(()).unwrap_or_else(|error| {
+                            println!("Could not send connection established message: {error:?}");
+                        });
                     server.run();
                     SERVER.store(std::ptr::null_mut(), Ordering::Release);
                 }
-                Err(_) => {
-                    println!("Connection error!");
+                Err(error) => {
+                    println!("Server error: {error:?}");
                 }
             }
         });
 
     println!("Waiting for connection...");
-    connection_receiver
-        .recv()
-        .expect("Could not receive connection established message");
-    println!("Connection established!");
+    match connection_receiver.recv() {
+        Ok(()) => {
+            println!("Server connection established!");
+        }
+        Err(error) => {
+            println!("Unable to connect to server: {error:?}");
+        }
+    }
 
     server_thread_id
+}
+
+pub fn run_with_default_address() -> Result<JoinHandle<()>, std::io::Error> {
+    let default_host = "localhost";
+    let default_port = 8989;
+    run(IpAddress{host: default_host, port: default_port})
 }
 
 pub static SERVER: AtomicPtr<Server> = AtomicPtr::<Server>::new(std::ptr::null_mut());

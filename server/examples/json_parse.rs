@@ -1,5 +1,4 @@
-extern crate memdb_lib;
-
+use std::process;
 use serde::Deserialize;
 
 // Example from:
@@ -45,12 +44,17 @@ fn parse_json() {
 }
 
 fn main() {
-    let server_thread = memdb_lib::server::run().expect("Unable to run server");
+    let server_thread = memdb_lib::server::run_with_default_address().unwrap_or_else(|error| {
+        println!("Unable to run server on default address: {error:?}");
+        process::exit(-1);
+    });
+
     memdb_lib::server::send_marker("begin");
     parse_json();
     memdb_lib::server::send_marker("end");
     memdb_lib::server::send_terminate();
-    if server_thread.join().is_err() {
-        println!("Unable to join server thread");
-    }
+    server_thread.join().unwrap_or_else(|error| {
+        println!("Unable to join server thread: {error:?}");
+        process::exit(-1);
+    });
 }
