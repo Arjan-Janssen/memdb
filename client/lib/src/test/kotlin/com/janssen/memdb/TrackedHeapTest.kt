@@ -482,9 +482,9 @@ markers:
         val expectedGraph =
 """ allocated->                    <-4
      begin: --------------------
-         0: ####################
+         0: >>>>>>>>>>>>>>>>>>>>
        end: --------------------
-         1: 
+         1: <<<<<<<<<<<<<<<<<<<<
 """
         assertEquals(
             expectedGraph,
@@ -501,7 +501,7 @@ markers:
         val expectedGraph =
 """ allocated->                    <-4
      begin: --------------------
-         0: ####################
+         0: >>>>>>>>>>>>>>>>>>>>
        end: --------------------
 """
         assertEquals(
@@ -535,9 +535,9 @@ ${AnsiColor.RED.code}         0: ${AnsiColor.RESET.code}
         val expectedGraph =
             """ allocated->          <-4
      begin: ----------
-         0: ##########
+         0: >>>>>>>>>>
        end: ----------
-         1: 
+         1: <<<<<<<<<<
 """
         assertEquals(
             expectedGraph,

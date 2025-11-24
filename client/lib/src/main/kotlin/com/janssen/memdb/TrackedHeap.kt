@@ -5,6 +5,7 @@ import java.io.File
 import java.text.ParseException
 import java.util.Locale
 import kotlin.math.ceil
+import kotlin.math.max
 import kotlin.math.min
 
 const val MIN_GRAPH_COLUMNS = 8
@@ -224,37 +225,49 @@ data class TrackedHeap(
         val rows: Int,
     )
 
+    data class HeapSizeChange(
+        val before: Int,
+        val after: Int,
+    )
+
     // Returns for each heap operation the cumulative heap sizes after the operation is
     // executed and, for deallocations, whether it matches its address with a previous alloc.
     // Unmatched deallocations are ignored in the cumulative heap size.
     // Matches are returned in the matches list.
     data class HeapGraph(
-        val sizes: List<Int>,
+        val sizeChanges: List<HeapSizeChange>,
         val matchesAlloc: List<Boolean>,
     ) {
         companion object {
             fun compute(heapOperations: List<HeapOperation>): HeapGraph {
-                val sizes = mutableListOf<Int>()
+                val sizeChanges = mutableListOf<HeapSizeChange>()
                 val matches = mutableListOf<Boolean>()
                 var currentHeapSize = 0
+                var sizeChange = 0
                 val knownAllocs = mutableMapOf<Int, HeapOperation>()
                 heapOperations.forEach { op ->
                     if (op.kind == HeapOperationKind.Alloc) {
-                        currentHeapSize += op.size
+                        sizeChange = op.size
                         knownAllocs[op.address] = op
                         // allocations always match
                         matches.add(true)
                     } else {
                         val alloc = knownAllocs[op.address]
                         alloc?.let { alloc ->
-                            currentHeapSize -= alloc.size
+                            sizeChange = -alloc.size
                             knownAllocs.remove(alloc.address)
                         }
                         matches.add(alloc != null)
                     }
-                    sizes.add(currentHeapSize)
+                    sizeChanges.add(
+                        HeapSizeChange(
+                            currentHeapSize,
+                            currentHeapSize + sizeChange,
+                        ),
+                    )
+                    currentHeapSize += sizeChange
                 }
-                return HeapGraph(sizes, matches)
+                return HeapGraph(sizeChanges, matches)
             }
         }
     }
@@ -295,12 +308,23 @@ data class TrackedHeap(
             return builder.toString()
         }
 
+        data class PlotSizes(
+            val before: Int,
+            val after: Int,
+        )
+
+        data class PlotSymbols(
+            val default: Char,
+            val alloc: Char,
+            val dealloc: Char,
+        )
+
         fun plotRow(
             rowOperations: RowOperations,
             columns: Int,
-            numSymbols: Int,
+            plotSizes: PlotSizes,
+            plotSymbols: PlotSymbols,
             matchesAlloc: Boolean,
-            symbol: Char,
         ): String {
             val builder = StringBuilder()
             markers(rowOperations.seqNo).forEach {
@@ -311,8 +335,20 @@ data class TrackedHeap(
                 builder.append(AnsiColor.RED.code)
             }
             builder.append(String.format(Locale.getDefault(), "%10d: ", rowOperations.seqNo))
-            repeat(numSymbols) {
-                builder.append(symbol)
+            if (plotSizes.before < plotSizes.after) {
+                repeat(plotSizes.before) {
+                    builder.append(plotSymbols.default)
+                }
+                repeat(plotSizes.after - plotSizes.before) {
+                    builder.append(plotSymbols.alloc)
+                }
+            } else {
+                repeat(plotSizes.after) {
+                    builder.append(plotSymbols.default)
+                }
+                repeat(plotSizes.before - plotSizes.after) {
+                    builder.append(plotSymbols.dealloc)
+                }
             }
             if (!matchesAlloc) {
                 builder.append(AnsiColor.RESET.code)
@@ -331,16 +367,37 @@ data class TrackedHeap(
             return builder.toString()
         }
 
+        fun numSymbols(
+            size: Int,
+            maxHeapSize: Int,
+            columns: Int,
+        ) = if (maxHeapSize > 0) (size * dimensions.columns) / maxHeapSize else 0
+
+        fun numSymbols(
+            sizeChange: HeapSizeChange,
+            maxHeapSize: Int,
+            columns: Int,
+        ) = PlotSizes(
+            numSymbols(sizeChange.before, maxHeapSize, columns),
+            numSymbols(sizeChange.after, maxHeapSize, columns),
+        )
+
+        fun maxHeapSize(sizeChanges: List<HeapSizeChange>): Int {
+            var maxHeapSize = 0
+            sizeChanges.slice(operationRange).forEach {
+                maxHeapSize = max(maxHeapSize, it.after)
+            }
+            return maxHeapSize
+        }
+
         require(0 <= operationRange.first)
         require(operationRange.first <= operationRange.last)
         require(operationRange.last < heapOperations.size)
         require(MIN_GRAPH_COLUMNS <= dimensions.columns)
         require(MIN_GRAPH_ROWS <= dimensions.rows)
 
-        val symbol = '#'
-
         val heapGraph = HeapGraph.compute(heapOperations)
-        val maxHeapSize = heapGraph.sizes.slice(operationRange).maxOrNull() ?: 0
+        var maxHeapSize = maxHeapSize(heapGraph.sizeChanges)
         require(0 <= maxHeapSize)
 
         val builder = StringBuilder()
@@ -352,8 +409,13 @@ data class TrackedHeap(
             return builder.toString()
         }
         val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
+        val plotSymbols =
+            PlotSymbols(
+                '#',
+                '>',
+                '<',
+            )
         for (rowSeqNo in operationRange step operationsPerRow) {
-            val numSymbols = if (maxHeapSize > 0) (heapGraph.sizes[rowSeqNo] * dimensions.columns) / maxHeapSize else 0
             val matchesAlloc = heapGraph.matchesAlloc[rowSeqNo]
             builder.append(
                 plotRow(
@@ -363,9 +425,13 @@ data class TrackedHeap(
                         operationRange,
                     ),
                     dimensions.columns,
-                    numSymbols,
+                    numSymbols(
+                        heapGraph.sizeChanges[rowSeqNo],
+                        maxHeapSize,
+                        dimensions.columns,
+                    ),
+                    plotSymbols,
                     matchesAlloc,
-                    symbol,
                 ),
             )
         }
