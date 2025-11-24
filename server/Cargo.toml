@@ -9,9 +9,11 @@ edition = "2024"
 backtrace = "0.3"
 gettid = "0.1.4"
 protobuf = "3.7.2"
+time = "0.3.44"
+
+[dev-dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
-time = "0.3.44"
 
 [build-dependencies]
 protobuf-codegen = "3.7.2"
