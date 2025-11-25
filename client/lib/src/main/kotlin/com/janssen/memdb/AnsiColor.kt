@@ -16,6 +16,7 @@ enum class DiffColor(
 ) {
     ADD(AnsiColor.GREEN),
     DEL(AnsiColor.RED),
+    CLR(AnsiColor.RESET),
     ;
 
     override fun toString(): String = color.toString()

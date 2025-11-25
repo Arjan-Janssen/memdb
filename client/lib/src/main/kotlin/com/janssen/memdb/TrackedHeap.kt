@@ -4,11 +4,9 @@ import memdb.Message
 import java.io.File
 import java.text.ParseException
 import java.util.Locale
-import kotlin.collections.plusAssign
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.unaryMinus
 
 const val MIN_GRAPH_COLUMNS = 8
 const val MIN_GRAPH_ROWS = 0
@@ -345,7 +343,7 @@ data class TrackedHeap(
             val after: Int,
         )
 
-        data class RowPlotSymbols(
+        data class RowPlotCharacters(
             val default: Char,
             val alloc: Char,
             val dealloc: Char,
@@ -357,14 +355,14 @@ data class TrackedHeap(
             rowOperations: RowOperations,
             columns: Int,
             rowPlotSizes: RowPlotSizes,
-            plotSymbols: RowPlotSymbols,
+            plotCharacters: RowPlotCharacters,
             matchesAlloc: Boolean,
         ): String {
             fun plotHeapOperationBar(
                 rowPlotSizes: RowPlotSizes,
-                plotSymbols: RowPlotSymbols,
+                plotCharacters: RowPlotCharacters,
             ): String {
-                data class BarPlotSymbols(
+                data class BarPlotCharacters(
                     val default: Char,
                     val first: Char,
                     val last: Char,
@@ -372,23 +370,23 @@ data class TrackedHeap(
 
                 fun plotColoredBar(
                     color: AnsiColor,
-                    numSymbols: Int,
-                    plotSymbols: BarPlotSymbols,
+                    numCharacters: Int,
+                    plotCharacters: BarPlotCharacters,
                 ): String {
-                    require(0 <= numSymbols)
+                    require(0 <= numCharacters)
 
-                    if (numSymbols == 0) {
+                    if (numCharacters == 0) {
                         return ""
                     }
 
                     val builder = StringBuilder()
                     builder.append(color.code)
-                    builder.append(plotSymbols.first)
-                    repeat(numSymbols - 2) {
-                        builder.append(plotSymbols.default)
+                    builder.append(plotCharacters.first)
+                    repeat(numCharacters - 2) {
+                        builder.append(plotCharacters.default)
                     }
-                    if (1 < numSymbols) {
-                        builder.append(plotSymbols.last)
+                    if (numCharacters > 1) {
+                        builder.append(plotCharacters.last)
                     }
                     builder.append(AnsiColor.RESET.code)
                     return builder.toString()
@@ -396,7 +394,7 @@ data class TrackedHeap(
 
                 val builder = StringBuilder()
                 repeat(min(rowPlotSizes.before, rowPlotSizes.after)) {
-                    builder.append(plotSymbols.default)
+                    builder.append(plotCharacters.default)
                 }
 
                 val sizeChange = rowPlotSizes.after - rowPlotSizes.before
@@ -405,20 +403,20 @@ data class TrackedHeap(
                         plotColoredBar(
                             DiffColor.ADD.color,
                             sizeChange,
-                            BarPlotSymbols(
-                                plotSymbols.alloc,
-                                plotSymbols.start,
-                                plotSymbols.alloc,
+                            BarPlotCharacters(
+                                plotCharacters.alloc,
+                                plotCharacters.start,
+                                plotCharacters.alloc,
                             ),
                         )
                     } else {
                         plotColoredBar(
                             DiffColor.DEL.color,
                             -sizeChange,
-                            BarPlotSymbols(
-                                plotSymbols.dealloc,
-                                plotSymbols.dealloc,
-                                plotSymbols.start,
+                            BarPlotCharacters(
+                                plotCharacters.dealloc,
+                                plotCharacters.dealloc,
+                                plotCharacters.start,
                             ),
                         )
                     },
@@ -444,7 +442,7 @@ data class TrackedHeap(
             builder.append(
                 plotHeapOperationBar(
                     rowPlotSizes,
-                    plotSymbols,
+                    plotCharacters,
                 ),
             )
 
@@ -465,19 +463,17 @@ data class TrackedHeap(
             return builder.toString()
         }
 
-        fun numSymbols(
+        fun numPlotCharacters(
             size: Int,
             maxHeapSize: Int,
-            columns: Int,
         ) = if (maxHeapSize > 0) (size * dimensions.columns) / maxHeapSize else 0
 
-        fun numSymbols(
+        fun numPlotCharacters(
             sizeChange: HeapSizeChange,
             maxHeapSize: Int,
-            columns: Int,
         ) = RowPlotSizes(
-            numSymbols(sizeChange.before, maxHeapSize, columns),
-            numSymbols(sizeChange.after, maxHeapSize, columns),
+            numPlotCharacters(sizeChange.before, maxHeapSize),
+            numPlotCharacters(sizeChange.after, maxHeapSize),
         )
 
         fun maxHeapSize(sizeChanges: List<HeapSizeChange>): Int {
@@ -512,8 +508,8 @@ data class TrackedHeap(
             return builder.toString()
         }
         val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
-        val plotSymbols =
-            RowPlotSymbols(
+        val plotCharacters =
+            RowPlotCharacters(
                 '#',
                 '+',
                 '-',
@@ -529,12 +525,11 @@ data class TrackedHeap(
                         operationRange,
                     ),
                     dimensions.columns,
-                    numSymbols(
+                    numPlotCharacters(
                         heapGraph.sizeChanges[rowSeqNo],
                         maxHeapSize,
-                        dimensions.columns,
                     ),
-                    plotSymbols,
+                    plotCharacters,
                     matchesAlloc,
                 ),
             )
@@ -582,14 +577,12 @@ data class TrackedHeap(
 
         fun truncate(range: Range): TrackedHeap {
             val trackedHeap = range.trackedHeap
-            // make space for sentinel
-            val adjustedIntRange = IntRange(range.range.first, range.range.last + 1)
-            val truncatedHeapOperations = trackedHeap.heapOperations.slice(adjustedIntRange).toMutableList()
+            val rangeWithExtraSentinel = IntRange(range.range.first, range.range.last + 1)
+            val truncatedHeapOperations = trackedHeap.heapOperations.slice(rangeWithExtraSentinel).toMutableList()
             // copy sentinel from original tracked heap, if needed
-            if (adjustedIntRange.last != trackedHeap.heapOperations.size) {
+            if (rangeWithExtraSentinel.last != trackedHeap.heapOperations.size) {
                 truncatedHeapOperations[truncatedHeapOperations.size - 1] = trackedHeap.heapOperations.last()
             }
-
             return TrackedHeap(truncatedHeapOperations, trackedHeap.markers)
         }
 

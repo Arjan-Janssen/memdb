@@ -25,23 +25,23 @@ data class Diff private constructor(
         }
 
         if (added.isNotEmpty()) {
-            builder.append(AnsiColor.GREEN)
+            builder.append(DiffColor.ADD)
             added.forEach {
                 builder
                     .append("+ ")
                     .appendLine(it.toString())
             }
-            builder.append(AnsiColor.RESET)
+            builder.append(DiffColor.CLR)
         }
 
         if (removed.isNotEmpty()) {
-            builder.append(AnsiColor.RED)
+            builder.append(DiffColor.DEL)
             removed.forEach {
                 builder
                     .append("- ")
                     .appendLine(it.toString())
             }
-            builder.append(AnsiColor.RESET)
+            builder.append(DiffColor.CLR)
         }
         return builder.toString()
     }
