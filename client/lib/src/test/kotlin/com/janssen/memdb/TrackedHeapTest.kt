@@ -309,8 +309,8 @@ class TrackedHeapTest {
             ),
             markers =
                 listOf(
-                    Marker(0, "begin"),
-                    Marker(1, "end"),
+                    Marker(0, "begin", index = 0),
+                    Marker(1, "end", index = 1),
                 ),
         )
 
@@ -360,51 +360,25 @@ class TrackedHeapTest {
         )
 
     @Test
-    fun `rangeStartPosition with valid marker name`() {
+    fun `position with valid marker name`() {
         val trackedHeap = createMatchingAllocDeallocPair()
-        assertEquals(1, trackedHeap.position("end"))
+        assertEquals(0, trackedHeap.position("begin"))
     }
 
     @Test
-    fun `rangeStartPosition with invalid marker name`() {
+    fun `position with invalid marker name`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         assertNull(trackedHeap.position("arjan"))
     }
 
     @Test
-    fun `rangeStartPosition with valid index`() {
+    fun `position with valid index`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         assertEquals(0, trackedHeap.position("0"))
     }
 
     @Test
-    fun `rangeStartPosition with invalid index`() {
-        val trackedHeap = createMatchingAllocDeallocPair()
-        // Invalid indices are permitted. The function does not do range checking
-        assertEquals(1982, trackedHeap.position("1982"))
-        assertEquals(-1, trackedHeap.position("-1"))
-    }
-
-    @Test
-    fun `rangeEndPosition with valid marker name`() {
-        val trackedHeap = createMatchingAllocDeallocPair()
-        assertEquals(1, trackedHeap.position("end"))
-    }
-
-    @Test
-    fun `rangeEndPosition with invalid marker name`() {
-        val trackedHeap = createMatchingAllocDeallocPair()
-        assertNull(trackedHeap.position("arjan"))
-    }
-
-    @Test
-    fun `rangeEndPosition with valid index`() {
-        val trackedHeap = createMatchingAllocDeallocPair()
-        assertEquals(1, trackedHeap.position("1"))
-    }
-
-    @Test
-    fun `rangeEndPosition with invalid index`() {
+    fun `position with invalid index`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         // Invalid indices are permitted. The function does not do range checking
         assertEquals(1982, trackedHeap.position("1982"))
@@ -450,6 +424,15 @@ class TrackedHeapTest {
     }
 
     @Test
+    fun `marker with valid name and index`() {
+        val trackedHeap = createMatchingAllocDeallocPair()
+        val validName = "end"
+        val marker = trackedHeap.marker(validName, 1)
+        assertNotNull(marker)
+        assertEquals(validName, marker?.name)
+    }
+
+    @Test
     fun `marker with invalid name`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         val invalidName = "invalid"
@@ -482,8 +465,8 @@ class TrackedHeapTest {
   dealloc[seq no: 1, kind: Dealloc, duration: 400ms, address: 00000002, size: 4, thread id: 6, backtrace: <hidden>] -> 0
 
 markers:
-  marker[name: begin, seq-no: 0]
-  marker[name: end, seq-no: 1]"""
+  marker[name: begin, index: 0, seq-no: 0]
+  marker[name: end, index: 1, seq-no: 1]"""
         assertEquals(expectedString, trackedHeap.toString())
     }
 
@@ -500,11 +483,11 @@ markers:
     fun `plotGraph with full range`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         val expectedGraph =
-""" allocated->                    <-4
-     begin: --------------------
-         0: ${DiffColor.ADD.color.code}*+++++++++++++++++++${AnsiColor.RESET.code}
-       end: --------------------
-         1: ${DiffColor.DEL.color.code}-------------------*${AnsiColor.RESET.code}
+"""       allocated->                    <-4
+           begin: --------------------
+               0: ${DiffColor.ADD.color.code}*+++++++++++++++++++${AnsiColor.RESET.code}
+           end:1: --------------------
+               1: ${DiffColor.DEL.color.code}-------------------*${AnsiColor.RESET.code}
 """
         assertEquals(
             expectedGraph,
@@ -519,10 +502,10 @@ markers:
     fun `plotGraph with smaller sub-range`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         val expectedGraph =
-""" allocated->                    <-4
-     begin: --------------------
-         0: ${DiffColor.ADD.color.code}*+++++++++++++++++++${AnsiColor.RESET.code}
-       end: --------------------
+"""       allocated->                    <-4
+           begin: --------------------
+               0: ${DiffColor.ADD.color.code}*+++++++++++++++++++${AnsiColor.RESET.code}
+           end:1: --------------------
 """
         assertEquals(
             expectedGraph,
@@ -537,8 +520,8 @@ markers:
     fun `plotGraph with mismatching dealloc colors the memory bar`() {
         val trackedHeap = createMismatchedDealloc()
         val expectedGraph =
-            """ allocated->          <-0
-${DiffColor.DEL.color.code}         0: ${AnsiColor.RESET.code}
+            """       allocated->          <-0
+${DiffColor.DEL.color.code}               0: ${AnsiColor.RESET.code}
 """
         assertEquals(
             expectedGraph,
@@ -553,11 +536,11 @@ ${DiffColor.DEL.color.code}         0: ${AnsiColor.RESET.code}
     fun `plotGraph with half the number of columns`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         val expectedGraph =
-            """ allocated->          <-4
-     begin: ----------
-         0: ${DiffColor.ADD.color.code}*+++++++++${AnsiColor.RESET.code}
-       end: ----------
-         1: ${DiffColor.DEL.color.code}---------*${AnsiColor.RESET.code}
+            """       allocated->          <-4
+           begin: ----------
+               0: ${DiffColor.ADD.color.code}*+++++++++${AnsiColor.RESET.code}
+           end:1: ----------
+               1: ${DiffColor.DEL.color.code}---------*${AnsiColor.RESET.code}
 """
         assertEquals(
             expectedGraph,

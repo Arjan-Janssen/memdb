@@ -48,9 +48,11 @@ data class TrackedHeap(
             apply {
                 markers
                     .find {
-                        it.name == marker.name
+                        it.name == marker.name && it.index == marker.index
                     }?.let {
-                        throw IllegalArgumentException("Marker with name ${marker.name} exists already")
+                        throw IllegalArgumentException(
+                            "Marker with name ${marker.name} and index ${marker.index} exists already",
+                        )
                     }
                 markers.add(marker)
             }
@@ -135,22 +137,46 @@ data class TrackedHeap(
         return matches
     }
 
-    fun marker(markerName: String): Marker? =
+    fun marker(
+        name: String,
+        index: Int,
+    ): Marker? =
         markers
             .find {
-                it.name == markerName
+                it.name == name && it.index == index
             }
 
+    fun marker(name: String) = marker(name, 0)
+
     fun position(positionSpec: String): Int? {
-        fun markerPosition(markerName: String): Int? {
-            marker(markerName)?.let {
+        fun parseMarkerSpec(spec: String): Pair<String, Int> {
+            val splitString = spec.split(':')
+            if (splitString.isEmpty()) {
+                return Pair<String, Int>(spec, 0)
+            }
+            val name = splitString[0]
+            val index =
+                if (splitString.size > 1) {
+                    splitString[1].toIntOrNull() ?: 0
+                } else {
+                    0
+                }
+            return Pair<String, Int>(name, index)
+        }
+
+        fun markerPosition(
+            name: String,
+            index: Int,
+        ): Int? {
+            marker(name, index)?.let {
                 return it.firstOperationSeqNo
             }
             return null
         }
 
         val position = positionSpec.toIntOrNull()
-        return position ?: markerPosition(positionSpec)
+        val (markerName, markerIndex) = parseMarkerSpec(positionSpec)
+        return position ?: markerPosition(markerName, markerIndex)
     }
 
     override fun toString(): String {
@@ -266,7 +292,7 @@ data class TrackedHeap(
             require(0 <= maxHeapSize)
 
             val builder = StringBuilder()
-            builder.append(String.format(Locale.getDefault(), "%10s->", "allocated"))
+            builder.append(String.format(Locale.getDefault(), "%16s->", "allocated"))
             repeat(columns) {
                 builder.append(' ')
             }
@@ -276,13 +302,38 @@ data class TrackedHeap(
         }
 
         fun plotMarker(
-            name: String,
+            marker: Marker,
             columns: Int,
         ): String {
+            fun mangleMarkerName(
+                name: String,
+                index: Int,
+            ) = if (marker.index == 0) {
+                String.format(
+                    Locale.getDefault(),
+                    "%s",
+                    marker.name,
+                )
+            } else {
+                String.format(
+                    Locale.getDefault(),
+                    "%s:%d",
+                    marker.name,
+                    marker.index,
+                )
+            }
+
             require(MIN_GRAPH_COLUMNS <= columns)
 
             val builder = StringBuilder()
-            builder.append(String.format(Locale.getDefault(), "%10s: ", name))
+            val mangledMarkerName = mangleMarkerName(marker.name, marker.index)
+            builder.append(
+                String.format(
+                    Locale.getDefault(),
+                    "%16s: ",
+                    mangledMarkerName,
+                ),
+            )
             repeat(columns) {
                 builder.append('-')
             }
@@ -377,14 +428,25 @@ data class TrackedHeap(
 
             val builder = StringBuilder()
             markers(rowOperations.seqNo).forEach {
-                builder.appendLine(plotMarker(it.name, columns))
+                builder.appendLine(plotMarker(it, columns))
             }
 
             if (!matchesAlloc) {
                 builder.append(AnsiColor.RED.code)
             }
-            builder.append(String.format(Locale.getDefault(), "%10d: ", rowOperations.seqNo))
-            builder.append(plotHeapOperationBar(rowPlotSizes, plotSymbols))
+            builder.append(
+                String.format(
+                    Locale.getDefault(),
+                    "%16d: ",
+                    rowOperations.seqNo,
+                ),
+            )
+            builder.append(
+                plotHeapOperationBar(
+                    rowPlotSizes,
+                    plotSymbols,
+                ),
+            )
 
             if (!matchesAlloc) {
                 builder.append(AnsiColor.RESET.code)
@@ -396,7 +458,7 @@ data class TrackedHeap(
             val markerRange = rowOperations.seqNo + 1..markerEndSeqNo
             for (skippedSeqNo in markerRange) {
                 markers(skippedSeqNo).forEach {
-                    builder.appendLine(plotMarker(it.name, columns))
+                    builder.appendLine(plotMarker(it, columns))
                 }
             }
 
@@ -480,7 +542,7 @@ data class TrackedHeap(
 
         // print potential terminating markers
         markers(operationRange.last + 1).forEach {
-            builder.appendLine(plotMarker(it.name, dimensions.columns))
+            builder.appendLine(plotMarker(it, dimensions.columns))
         }
 
         return builder.toString()

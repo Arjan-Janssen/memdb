@@ -27,9 +27,15 @@ pub struct HeapOperation {
 }
 
 #[derive(Debug)]
+pub struct Marker {
+    pub name: &'static str,
+    pub index: i64,
+}
+
+#[derive(Debug)]
 pub enum ServerMessage {
     HeapOperation(HeapOperation),
-    Marker(&'static str),
+    Marker(Marker),
     Terminate,
 }
 
@@ -195,18 +201,19 @@ impl Server {
         Ok(())
     }
 
-    fn push_marker(&mut self, name: &'static str) {
-        let mut marker = generated::message::Marker::new();
-        marker.name = String::from(name);
-        marker.first_operation_seq_no =
+    fn push_marker(&mut self, marker: Marker) {
+        let mut proto_marker = generated::message::Marker::new();
+        proto_marker.name = String::from(marker.name);
+        proto_marker.index = marker.index;
+        proto_marker.first_operation_seq_no =
             (self.num_heap_operations_sent + self.update.heap_operations.iter().count()) as i64;
-        self.update.markers.push(marker);
+        self.update.markers.push(proto_marker);
     }
 
     fn process(&mut self, message: ServerMessage) -> Result<(), std::io::Error> {
         match message {
             ServerMessage::HeapOperation(heap_op) => self.push_heap_operation(heap_op),
-            ServerMessage::Marker(name) => Ok(self.push_marker(name)),
+            ServerMessage::Marker(marker) => Ok(self.push_marker(marker)),
             ServerMessage::Terminate => {
                 self.terminate = true;
                 self.push_heap_operation(HeapOperation::sentinel())
@@ -288,8 +295,15 @@ fn send_server_message(message: ServerMessage) {
     }
 }
 
+pub fn send_marker_indexed(name: &'static str, index: i64) {
+    send_server_message(ServerMessage::Marker(Marker {
+        name: name,
+        index: index,
+    }));
+}
+
 pub fn send_marker(name: &'static str) {
-    send_server_message(ServerMessage::Marker(name));
+    send_marker_indexed(name, 0);
 }
 
 pub fn send_terminate() {

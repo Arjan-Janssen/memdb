@@ -16,7 +16,7 @@ class MarkerTest {
     @Test
     fun `toString returns readable string with all marker info`() {
         assertEquals(
-            "marker[name: begin, seq-no: 2]",
+            "marker[name: begin, index: 0, seq-no: 2]",
             Marker(2, "begin").toString(),
         )
     }
