@@ -3,6 +3,8 @@ server/src/generated
 
 # Server build target directory
 server/target
+# Server generated sources
+server/src/server/generated/message.rs
 
 # MacOS files
 .DS_Store

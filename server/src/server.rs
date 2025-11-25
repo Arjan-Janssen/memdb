@@ -28,7 +28,7 @@ pub struct HeapOperation {
 
 #[derive(Debug)]
 pub enum ServerMessage {
-    HeapOp(HeapOperation),
+    HeapOperation(HeapOperation),
     Marker(&'static str),
     Terminate,
 }
@@ -63,7 +63,7 @@ pub enum NetworkError {
 
 impl Drop for Server {
     fn drop(&mut self) {
-        if let Err(error) = self.flush(true) {
+        if let Err(error) = self.flush() {
             println!("Unable to flush heap operations. Error: {error:?}");
         }
         if let Err(error) = self.stream.shutdown(std::net::Shutdown::Both) {
@@ -74,6 +74,18 @@ impl Drop for Server {
             self.num_heap_operations_sent, self.num_bytes_sent
         );
         println!("Closing server...");
+    }
+}
+
+impl HeapOperation {
+    pub fn sentinel() -> HeapOperation {
+        HeapOperation {
+            address: 0,
+            size: 0,
+            thread_id: 0,
+            kind: HeapOperationKind::Alloc,
+            backtrace: String::from(""),
+        }
     }
 }
 
@@ -126,9 +138,8 @@ impl Server {
         Err(std::io::Error::other("Unable to establish connection"))
     }
 
-    fn flush(&mut self, end_of_file: bool) -> Result<(), std::io::Error> {
+    fn flush(&mut self) -> Result<(), std::io::Error> {
         let mut proto_bytes_buffer: Vec<u8> = vec![];
-        self.update.end_of_file = end_of_file;
         let _ = self.update.write_to_vec(&mut proto_bytes_buffer);
         let num_bytes_written = self.stream.write(&proto_bytes_buffer)?;
         self.num_heap_operations_sent += self.update.heap_operations.len();
@@ -138,29 +149,29 @@ impl Server {
         Ok(())
     }
 
-    fn create_proto_heap_op(
+    fn create_proto_heap_operation(
         duration_since_server_start: Duration,
-        heap_op: HeapOperation,
+        heap_operation: HeapOperation,
         store_backtrace: bool,
     ) -> generated::message::HeapOperation {
-        let mut proto_op = generated::message::HeapOperation::new();
-        proto_op.micros_since_server_start =
+        let mut proto_operation = generated::message::HeapOperation::new();
+        proto_operation.micros_since_server_start =
             duration_since_server_start.as_micros().try_into().unwrap();
-        proto_op.address = heap_op.address as i64;
-        proto_op.size = Some(heap_op.size as i64);
-        proto_op.thread_id = heap_op.thread_id;
-        proto_op.kind = ::protobuf::EnumOrUnknown::new(match heap_op.kind {
+        proto_operation.address = heap_operation.address as i64;
+        proto_operation.thread_id = heap_operation.thread_id;
+        proto_operation.size = Some(heap_operation.size as i64);
+        proto_operation.kind = ::protobuf::EnumOrUnknown::new(match heap_operation.kind {
             HeapOperationKind::Alloc => generated::message::heap_operation::Kind::Alloc,
             HeapOperationKind::Dealloc => generated::message::heap_operation::Kind::Dealloc,
         });
         if store_backtrace {
-            proto_op.backtrace = heap_op.backtrace;
+            proto_operation.backtrace = heap_operation.backtrace;
         }
 
-        proto_op
+        proto_operation
     }
 
-    fn push_heap_op(&mut self, heap_op: HeapOperation) -> Result<(), std::io::Error> {
+    fn push_heap_operation(&mut self, heap_op: HeapOperation) -> Result<(), std::io::Error> {
         let duration_since_server_start = match SystemTime::now().duration_since(self.start_time) {
             Ok(duration) => duration,
             Err(error) => {
@@ -168,16 +179,18 @@ impl Server {
                 Duration::from_millis(0)
             }
         };
-        self.update.heap_operations.push(Self::create_proto_heap_op(
-            duration_since_server_start,
-            heap_op,
-            self.settings.store_backtrace,
-        ));
+        self.update
+            .heap_operations
+            .push(Self::create_proto_heap_operation(
+                duration_since_server_start,
+                heap_op,
+                self.settings.store_backtrace,
+            ));
 
         if self.update.heap_operations.iter().count()
             >= self.settings.num_heap_operations_per_message
         {
-            self.flush(false)?;
+            self.flush()?;
         }
         Ok(())
     }
@@ -192,9 +205,12 @@ impl Server {
 
     fn process(&mut self, message: ServerMessage) -> Result<(), std::io::Error> {
         match message {
-            ServerMessage::HeapOp(heap_op) => self.push_heap_op(heap_op),
+            ServerMessage::HeapOperation(heap_op) => self.push_heap_operation(heap_op),
             ServerMessage::Marker(name) => Ok(self.push_marker(name)),
-            ServerMessage::Terminate => Ok(self.terminate = true),
+            ServerMessage::Terminate => {
+                self.terminate = true;
+                self.push_heap_operation(HeapOperation::sentinel())
+            }
         }
     }
 
@@ -281,5 +297,5 @@ pub fn send_terminate() {
 }
 
 pub fn send_heap_operation(heap_operation: HeapOperation) {
-    send_server_message(ServerMessage::HeapOp(heap_operation));
+    send_server_message(ServerMessage::HeapOperation(heap_operation));
 }

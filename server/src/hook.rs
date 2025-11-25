@@ -69,7 +69,7 @@ impl TrackedAllocator {
 
         unsafe {
             let backtrace = backtrace::Backtrace::new();
-            (*server_ptr).send(ServerMessage::HeapOp(HeapOperation {
+            (*server_ptr).send(ServerMessage::HeapOperation(HeapOperation {
                 address: ptr as usize,
                 size: size,
                 thread_id: gettid::gettid(),

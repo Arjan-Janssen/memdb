@@ -133,4 +133,6 @@ data class HeapOperation(
                 .setBacktrace(heapOperation.backtrace)
                 .build()
     }
+
+    fun sentinel() = kind == HeapOperationKind.Alloc && size == 0
 }
