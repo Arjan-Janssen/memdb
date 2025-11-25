@@ -21,3 +21,6 @@ client/lib/build
 .gradle
 
 **/.idea/
+
+# Captured memdb traces
+client/traces/
