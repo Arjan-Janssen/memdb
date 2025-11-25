@@ -28,5 +28,5 @@ name = "json_parse"
 path = "examples/json_parse.rs"
 
 [[example]]
-name = "growing_vec"
-path = "examples/growing_vec.rs"
+name = "grow_vec"
+path = "examples/grow_vec.rs"

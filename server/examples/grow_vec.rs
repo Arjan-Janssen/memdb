@@ -1,11 +1,13 @@
 use std::process;
 
-fn growing_vec(iteration: i64) {
-    let mut growing_vec = vec![1, 2, 3];
-    for i in 1..10000 {
-        growing_vec.push(i);
+const GROW_SIZE: i64 = 10000;
+
+fn grow_vec() {
+    let mut grow = vec![1, 2, 3];
+    for i in 0..GROW_SIZE {
+        grow.push(i);
     }
-    memdb_lib::server::send_marker_indexed("in-scope", iteration);
+    memdb_lib::server::send_marker("growing");
 }
 
 fn main() {
@@ -14,11 +16,7 @@ fn main() {
         process::exit(-1);
     });
     memdb_lib::server::send_marker("begin");
-    let num_iterations = 100i64;
-    for i in 0..num_iterations {
-        growing_vec(i);
-        memdb_lib::server::send_marker_indexed("iteration", i);
-    }
+    grow_vec();
     memdb_lib::server::send_marker("end");
     memdb_lib::server::send_terminate();
     server_thread.join().unwrap_or_else(|error| {
