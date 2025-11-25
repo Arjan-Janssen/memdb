@@ -50,6 +50,13 @@ data class HeapOperation(
                 this.size = 0
             }
 
+        fun sentinel() =
+            apply {
+                this.kind = HeapOperationKind.Alloc
+                this.address = 0
+                this.size = 0
+            }
+
         fun threadId(threadId: Int) =
             apply {
                 this.threadId = threadId

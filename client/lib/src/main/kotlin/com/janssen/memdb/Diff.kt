@@ -216,22 +216,17 @@ data class Diff private constructor(
             trackedHeap: TrackedHeap,
             diffSpec: String,
         ): Diff {
-            // Diff spec refers to the state of the heap before the heap operation with the
-            // sequence number is applied.
-            fun toRange(diffRange: TrackedHeap.DiffRange): Range? {
-                val trackedHeap = diffRange.trackedHeap
-                val rangeMin = min(diffRange.range.first, diffRange.range.last)
-                val rangeMax = max(diffRange.range.first, diffRange.range.last)
-                if (rangeMax == rangeMin) {
-                    return null
-                }
-                val truncateRange = IntRange(rangeMin, rangeMax - 1)
-                return Range.fromIntRange(trackedHeap, truncateRange)
+            val diffRange = TrackedHeap.Range.fromString(trackedHeap, diffSpec)
+            if (diffRange.range.first == diffRange.range.last) {
+                return Diff(emptyList<HeapOperation>(), emptyList<HeapOperation>())
             }
-
-            val diffRange = TrackedHeap.DiffRange.fromString(trackedHeap, diffSpec)
-            val truncatedRange = toRange(diffRange) ?: return Diff(emptyList(), emptyList())
-            val truncatedHeap = TrackedHeap.truncate(truncatedRange)
+            val selectIntRange =
+                IntRange(
+                    min(diffRange.range.first, diffRange.range.last),
+                    max(diffRange.range.first, diffRange.range.last) - 1,
+                )
+            val selectRange = TrackedHeap.Range.fromIntRange(trackedHeap, selectIntRange)
+            val truncatedHeap = TrackedHeap.select(selectRange)
             val added = mutableSetOf<HeapOperation>()
             val removed = mutableSetOf<HeapOperation>()
             truncatedHeap.heapOperations.forEach {

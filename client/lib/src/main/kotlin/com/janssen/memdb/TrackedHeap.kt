@@ -4,9 +4,11 @@ import memdb.Message
 import java.io.File
 import java.text.ParseException
 import java.util.Locale
+import kotlin.collections.plusAssign
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.unaryMinus
 
 const val MIN_GRAPH_COLUMNS = 8
 const val MIN_GRAPH_ROWS = 0
@@ -20,91 +22,63 @@ data class TrackedHeap(
         val heapOperations = mutableListOf<HeapOperation>()
         val markers = mutableListOf<Marker>()
 
-        fun addHeapOperation(builder: HeapOperation.Builder): Builder {
-            heapOperations.add(builder.build())
-            return this
-        }
-
-        fun addHeapOperation(heapOperation: HeapOperation): Builder {
-            heapOperations.add(heapOperation)
-            return this
-        }
-
-        fun addHeapOperations(heapOperations: List<HeapOperation>): Builder {
-            heapOperations.forEach { op ->
-                addHeapOperation(op)
+        fun addHeapOperation(builder: HeapOperation.Builder): Builder =
+            apply {
+                heapOperations.add(builder.build())
             }
-            return this
-        }
 
-        fun addMarker(marker: Marker): Builder {
-            markers
-                .find {
-                    it.name == marker.name
-                }?.let {
-                    throw IllegalArgumentException("Marker with name ${marker.name} exists already")
+        fun addHeapOperation(heapOperation: HeapOperation): Builder =
+            apply {
+                heapOperations.add(heapOperation)
+            }
+
+        fun addHeapOperations(heapOperations: List<HeapOperation>): Builder =
+            apply {
+                heapOperations.forEach { op ->
+                    addHeapOperation(op)
                 }
-
-            markers.add(marker)
-            return this
-        }
-
-        fun addMarkers(markers: List<Marker>): Builder {
-            markers.forEach { marker ->
-                addMarker(marker)
             }
-            return this
-        }
+
+        fun addSentinel(): Builder =
+            apply {
+                heapOperations.add(HeapOperation.Builder().sentinel().build())
+            }
+
+        fun addMarker(marker: Marker): Builder =
+            apply {
+                markers
+                    .find {
+                        it.name == marker.name
+                    }?.let {
+                        throw IllegalArgumentException("Marker with name ${marker.name} exists already")
+                    }
+                markers.add(marker)
+            }
+
+        fun addMarkers(markers: List<Marker>): Builder =
+            apply {
+                markers.forEach { marker ->
+                    addMarker(marker)
+                }
+            }
 
         fun build(): TrackedHeap = TrackedHeap(heapOperations, markers)
     }
 
-    private fun createIntRange(
-        spec: String,
-        isDiff: Boolean,
-    ): IntRange {
+    private fun createIntRange(spec: String): IntRange {
         val fromToSpec = spec.split("..")
         if (fromToSpec.size != 2) {
-            throw ParseException("Invalid diff spec $spec. Expected format [from]..[to]", 0)
+            throw ParseException("Invalid range spec $spec. Expected format [from]..[to]", 0)
         }
         val fromPosition =
-            rangeStartPosition(fromToSpec[0])
-                ?: throw ParseException("Invalid from-position in diff spec $spec", 1)
+            position(fromToSpec[0])
+                ?: throw ParseException("Invalid from-position in range spec $spec", 1)
 
         val toPosition =
-            rangeEndPosition(fromToSpec[1], isDiff)
-                ?: throw ParseException("Invalid to-position in diff spec $spec", 2)
+            position(fromToSpec[1])
+                ?: throw ParseException("Invalid to-position in range spec $spec", 2)
 
         return IntRange(fromPosition, toPosition)
-    }
-
-    @ConsistentCopyVisibility
-    data class DiffRange private constructor(
-        val trackedHeap: TrackedHeap,
-        val range: IntRange,
-    ) {
-        companion object {
-            fun fromString(
-                trackedHeap: TrackedHeap,
-                spec: String,
-            ): DiffRange {
-                fun checkPositionValid(
-                    position: Int,
-                    attributeName: String,
-                ) {
-                    if (position < 0 ||
-                        trackedHeap.heapOperations.size < position
-                    ) {
-                        throw ParseException("Invalid $attributeName $position in diff spec $spec", 0)
-                    }
-                }
-
-                val range = trackedHeap.createIntRange(spec, true)
-                checkPositionValid(range.first, "from-position")
-                checkPositionValid(range.last, "to-position")
-                return DiffRange(trackedHeap, range)
-            }
-        }
     }
 
     @ConsistentCopyVisibility
@@ -145,7 +119,7 @@ data class TrackedHeap(
                 if (fromToSpec.size != 2) {
                     throw ParseException("Invalid diff spec $spec. Expected format [from]..[to]", 0)
                 }
-                val range = trackedHeap.createIntRange(spec, false)
+                val range = trackedHeap.createIntRange(spec)
                 return fromIntRange(trackedHeap, range)
             }
         }
@@ -167,47 +141,54 @@ data class TrackedHeap(
                 it.name == markerName
             }
 
-    fun rangeStartPosition(rangeSpecStart: String) =
-        rangeSpecStart.toIntOrNull()
-            ?: marker(rangeSpecStart)?.firstOperationSeqNo
-
-    fun rangeEndPosition(
-        rangeSpecEnd: String,
-        isDiff: Boolean,
-    ): Int? {
-        fun markerEndPosition(markerName: String): Int? {
+    fun position(positionSpec: String): Int? {
+        fun markerPosition(markerName: String): Int? {
             marker(markerName)?.let {
-                if (isDiff) {
-                    return it.firstOperationSeqNo
-                } else {
-                    return it.firstOperationSeqNo - 1
-                }
+                return it.firstOperationSeqNo
             }
             return null
         }
 
-        val endPosition = rangeSpecEnd.toIntOrNull()
-        return endPosition ?: markerEndPosition(rangeSpecEnd)
+        val position = positionSpec.toIntOrNull()
+        return position ?: markerPosition(positionSpec)
     }
 
     override fun toString(): String {
-        var builder = StringBuilder()
-        var indent = "  "
+        fun appendHeapOperation(
+            builder: StringBuilder,
+            heapOperation: HeapOperation,
+            cumulativeSize: Int,
+        ) {
+            if (!heapOperation.sentinel()) {
+                builder.append("\n  $heapOperation")
+                builder.append(" -> $cumulativeSize")
+            }
+        }
 
+        fun adjustSize(
+            cumulativeSize: Int,
+            heapOperation: HeapOperation,
+        ): Int =
+            if (heapOperation.kind == HeapOperationKind.Alloc) {
+                cumulativeSize + heapOperation.size
+            } else {
+                cumulativeSize - heapOperation.size
+            }
+
+        val builder = StringBuilder()
         if (heapOperations.isNotEmpty()) {
             builder.append("heap operations:")
             var cumulativeSize = 0
             heapOperations.forEach {
-                builder.append("\n$indent$it")
-                cumulativeSize += if (it.kind == HeapOperationKind.Alloc) it.size else -it.size
-                builder.append(" -> $cumulativeSize")
+                cumulativeSize = adjustSize(cumulativeSize, it)
+                appendHeapOperation(builder, it, cumulativeSize)
             }
         }
 
         if (markers.isNotEmpty()) {
             builder.append("\n\nmarkers:")
             markers.forEach {
-                builder.append("\n$indent$it")
+                builder.append("\n  $it")
             }
         }
 
@@ -531,9 +512,22 @@ data class TrackedHeap(
             return builder.build()
         }
 
+        fun select(range: Range): TrackedHeap {
+            val trackedHeap = range.trackedHeap
+            val selectedHeapOperations = trackedHeap.heapOperations.slice(range.range)
+            return TrackedHeap(selectedHeapOperations, trackedHeap.markers)
+        }
+
         fun truncate(range: Range): TrackedHeap {
             val trackedHeap = range.trackedHeap
-            val truncatedHeapOperations = trackedHeap.heapOperations.slice(range.range)
+            // make space for sentinel
+            val adjustedIntRange = IntRange(range.range.first, range.range.last + 1)
+            val truncatedHeapOperations = trackedHeap.heapOperations.slice(adjustedIntRange).toMutableList()
+            // copy sentinel from original tracked heap, if needed
+            if (adjustedIntRange.last != trackedHeap.heapOperations.size) {
+                truncatedHeapOperations[truncatedHeapOperations.size - 1] = trackedHeap.heapOperations.last()
+            }
+
             return TrackedHeap(truncatedHeapOperations, trackedHeap.markers)
         }
 

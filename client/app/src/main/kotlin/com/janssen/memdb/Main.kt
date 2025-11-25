@@ -255,10 +255,10 @@ class MemDB(
     fun doTruncate(
         trackedHeap: TrackedHeap,
         rangeSpec: String,
-    ): TrackedHeap {
+    ) {
         val diffSpec = TrackedHeap.Range.fromString(trackedHeap, rangeSpec)
         println("Truncating heap to $diffSpec...")
-        return TrackedHeap.truncate(diffSpec)
+        this.trackedHeap = TrackedHeap.truncate(diffSpec)
     }
 
     fun doPrint(

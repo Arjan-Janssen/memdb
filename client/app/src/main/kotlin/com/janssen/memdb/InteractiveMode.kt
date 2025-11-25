@@ -88,6 +88,15 @@ class InteractiveMode(
         } ?: printNoTrackedHeap()
     }
 
+    private fun runTruncateCommand(args: List<String>) {
+        memDB.trackedHeap?.let {
+            memDB.doTruncate(
+                it,
+                requiredArg(args, 1, "range-spec"),
+            )
+        } ?: printNoTrackedHeap()
+    }
+
     private fun runHistogramCommand(args: List<String>) {
         memDB.trackedHeap?.also {
             memDB.doHistogram(it, optionalArg(args, 1) !in setOf("no-buckets", "nb"))
@@ -178,9 +187,16 @@ class InteractiveMode(
             Command(
                 "diff",
                 "d",
-                "Diff between two pre-operation states of the heap [from-sequence-number..to-sequence-number]",
+                "Diff between two before-operation memory states [from-sequence-number..to-sequence-number]",
             ) {
                 runDiffCommand(it)
+            },
+            Command(
+                "truncate",
+                "trunc",
+                "Truncate the heap to the specified range-selection [from-sequence-number..to-sequence-number]",
+            ) {
+                runTruncateCommand(it)
             },
             Command(
                 "histogram",

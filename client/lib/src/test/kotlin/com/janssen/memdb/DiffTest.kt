@@ -9,6 +9,7 @@ class DiffTest {
             .Builder()
             .addHeapOperation(HeapOperation.Builder().alloc(5, 2))
             .addHeapOperation(HeapOperation.Builder().dealloc(5))
+            .addSentinel()
             .addMarker(Marker(0, "before"))
             .addMarker(Marker(2, "after"))
             .build()
@@ -18,6 +19,7 @@ class DiffTest {
             .Builder()
             .addHeapOperation(HeapOperation.Builder().alloc(1, 2))
             .addHeapOperation(HeapOperation.Builder().dealloc(2))
+            .addSentinel()
             .build()
 
     @Test
@@ -35,7 +37,7 @@ class DiffTest {
         val diff = Diff.compute(trackedHeap, "1..2")
         assertEquals(0, diff.added.size)
         assertEquals(1, diff.removed.size)
-        assertEquals(trackedHeap.heapOperations.last(), diff.removed.first())
+        assertEquals(trackedHeap.heapOperations[1], diff.removed.first())
     }
 
     @Test
@@ -45,7 +47,7 @@ class DiffTest {
         assertEquals(1, diff.added.size)
         assertEquals(trackedHeap.heapOperations.first(), diff.added.first())
         assertEquals(1, diff.removed.size)
-        assertEquals(trackedHeap.heapOperations.last(), diff.removed.first())
+        assertEquals(trackedHeap.heapOperations[1], diff.removed.first())
     }
 
     @Test
@@ -78,7 +80,7 @@ class DiffTest {
         val trackedHeap = createMismatchedAllocAndDeallocScenario()
         val diff = Diff.compute(trackedHeap, "2..1")
         assertEquals(1, diff.added.size)
-        assertEquals(trackedHeap.heapOperations.last(), diff.added.first())
+        assertEquals(trackedHeap.heapOperations[1], diff.added.first())
         assertEquals(0, diff.removed.size)
     }
 

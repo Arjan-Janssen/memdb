@@ -114,6 +114,16 @@ class TrackedHeapRangeTest {
                     threadId = 6,
                     backtrace = "dealloc backtrace",
                 ),
+                // Sentinel operation (alloc with size 0)
+                HeapOperation(
+                    1,
+                    HeapOperationKind.Alloc,
+                    durationSinceServerStart = 500.toDuration(DurationUnit.MILLISECONDS),
+                    address = 0,
+                    size = 0,
+                    threadId = 0,
+                    backtrace = "",
+                ),
             ),
             markers =
                 listOf(
@@ -141,14 +151,14 @@ class TrackedHeapRangeTest {
                 ParseException::class.java,
             ) {
                 val trackedHeap = createSimpleTrackedHeap()
-                val invalidRange = IntRange(1, 2)
+                val invalidRange = IntRange(1, 3)
 
                 TrackedHeap.Range.fromIntRange(
                     trackedHeap,
                     invalidRange,
                 )
             }
-        assertEquals("Invalid to-position 2 in range", exception.message)
+        assertEquals("Invalid to-position 3 in range", exception.message)
     }
 
     @Test
@@ -186,7 +196,7 @@ class TrackedHeapRangeTest {
     fun `fromString with valid marker names`() {
         val trackedHeap = createSimpleTrackedHeap()
         val expectedFromPosition = 0
-        val expectedToPosition = 1
+        val expectedToPosition = 2
         val range =
             TrackedHeap.Range.fromString(
                 trackedHeap,
@@ -207,7 +217,7 @@ class TrackedHeapRangeTest {
                 )
             }
         assertEquals(
-            "Invalid from-position in diff spec arjan..1",
+            "Invalid from-position in range spec arjan..1",
             exception.message,
         )
     }
@@ -223,7 +233,7 @@ class TrackedHeapRangeTest {
                 )
             }
         assertEquals(
-            "Invalid to-position in diff spec 0..arjan",
+            "Invalid to-position in range spec 0..arjan",
             exception.message,
         )
     }
@@ -286,6 +296,16 @@ class TrackedHeapTest {
                     threadId = 6,
                     backtrace = "dealloc backtrace",
                 ),
+                // Alloc with size 0 represents a sentinel
+                HeapOperation(
+                    2,
+                    HeapOperationKind.Alloc,
+                    durationSinceServerStart = 500.toDuration(DurationUnit.MILLISECONDS),
+                    address = 0,
+                    size = 0,
+                    threadId = 0,
+                    backtrace = "",
+                ),
             ),
             markers =
                 listOf(
@@ -342,53 +362,53 @@ class TrackedHeapTest {
     @Test
     fun `rangeStartPosition with valid marker name`() {
         val trackedHeap = createMatchingAllocDeallocPair()
-        assertEquals(1, trackedHeap.rangeStartPosition("end"))
+        assertEquals(1, trackedHeap.position("end"))
     }
 
     @Test
     fun `rangeStartPosition with invalid marker name`() {
         val trackedHeap = createMatchingAllocDeallocPair()
-        assertNull(trackedHeap.rangeStartPosition("arjan"))
+        assertNull(trackedHeap.position("arjan"))
     }
 
     @Test
     fun `rangeStartPosition with valid index`() {
         val trackedHeap = createMatchingAllocDeallocPair()
-        assertEquals(0, trackedHeap.rangeStartPosition("0"))
+        assertEquals(0, trackedHeap.position("0"))
     }
 
     @Test
     fun `rangeStartPosition with invalid index`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         // Invalid indices are permitted. The function does not do range checking
-        assertEquals(1982, trackedHeap.rangeStartPosition("1982"))
-        assertEquals(-1, trackedHeap.rangeStartPosition("-1"))
+        assertEquals(1982, trackedHeap.position("1982"))
+        assertEquals(-1, trackedHeap.position("-1"))
     }
 
     @Test
     fun `rangeEndPosition with valid marker name`() {
         val trackedHeap = createMatchingAllocDeallocPair()
-        assertEquals(0, trackedHeap.rangeEndPosition("end", false))
+        assertEquals(1, trackedHeap.position("end"))
     }
 
     @Test
     fun `rangeEndPosition with invalid marker name`() {
         val trackedHeap = createMatchingAllocDeallocPair()
-        assertNull(trackedHeap.rangeEndPosition("arjan", false))
+        assertNull(trackedHeap.position("arjan"))
     }
 
     @Test
     fun `rangeEndPosition with valid index`() {
         val trackedHeap = createMatchingAllocDeallocPair()
-        assertEquals(1, trackedHeap.rangeEndPosition("1", false))
+        assertEquals(1, trackedHeap.position("1"))
     }
 
     @Test
     fun `rangeEndPosition with invalid index`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         // Invalid indices are permitted. The function does not do range checking
-        assertEquals(1982, trackedHeap.rangeEndPosition("1982", false))
-        assertEquals(-1, trackedHeap.rangeEndPosition("-1", false))
+        assertEquals(1982, trackedHeap.position("1982"))
+        assertEquals(-1, trackedHeap.position("-1"))
     }
 
     @Test
@@ -416,7 +436,7 @@ class TrackedHeapTest {
                     IntRange(1, 1),
                 ),
             )
-        assertEquals(1, truncatedHeap.heapOperations.size)
+        assertEquals(2, truncatedHeap.heapOperations.size)
         assertEquals(trackedHeap.heapOperations[1], truncatedHeap.heapOperations[0])
     }
 
