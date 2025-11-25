@@ -308,24 +308,92 @@ data class TrackedHeap(
             return builder.toString()
         }
 
-        data class PlotSizes(
+        data class RowPlotSizes(
             val before: Int,
             val after: Int,
         )
 
-        data class PlotSymbols(
+        data class RowPlotSymbols(
             val default: Char,
             val alloc: Char,
             val dealloc: Char,
+            val start: Char,
         )
 
+        @Suppress("LongMethod")
         fun plotRow(
             rowOperations: RowOperations,
             columns: Int,
-            plotSizes: PlotSizes,
-            plotSymbols: PlotSymbols,
+            rowPlotSizes: RowPlotSizes,
+            plotSymbols: RowPlotSymbols,
             matchesAlloc: Boolean,
         ): String {
+            fun plotHeapOperationBar(
+                rowPlotSizes: RowPlotSizes,
+                plotSymbols: RowPlotSymbols,
+            ): String {
+                data class BarPlotSymbols(
+                    val default: Char,
+                    val first: Char,
+                    val last: Char,
+                )
+
+                fun plotColoredBar(
+                    color: AnsiColor,
+                    numSymbols: Int,
+                    plotSymbols: BarPlotSymbols,
+                ): String {
+                    require(0 <= numSymbols)
+
+                    if (numSymbols == 0) {
+                        return ""
+                    }
+
+                    val builder = StringBuilder()
+                    builder.append(color.code)
+                    builder.append(plotSymbols.first)
+                    repeat(numSymbols - 2) {
+                        builder.append(plotSymbols.default)
+                    }
+                    if (1 < numSymbols) {
+                        builder.append(plotSymbols.last)
+                    }
+                    builder.append(AnsiColor.RESET.code)
+                    return builder.toString()
+                }
+
+                val builder = StringBuilder()
+                repeat(min(rowPlotSizes.before, rowPlotSizes.after)) {
+                    builder.append(plotSymbols.default)
+                }
+
+                val sizeChange = rowPlotSizes.after - rowPlotSizes.before
+                builder.append(
+                    if (0 < sizeChange) {
+                        plotColoredBar(
+                            DiffColor.ADD.color,
+                            sizeChange,
+                            BarPlotSymbols(
+                                plotSymbols.alloc,
+                                plotSymbols.start,
+                                plotSymbols.alloc,
+                            ),
+                        )
+                    } else {
+                        plotColoredBar(
+                            DiffColor.DEL.color,
+                            -sizeChange,
+                            BarPlotSymbols(
+                                plotSymbols.dealloc,
+                                plotSymbols.dealloc,
+                                plotSymbols.start,
+                            ),
+                        )
+                    },
+                )
+                return builder.toString()
+            }
+
             val builder = StringBuilder()
             markers(rowOperations.seqNo).forEach {
                 builder.appendLine(plotMarker(it.name, columns))
@@ -335,28 +403,8 @@ data class TrackedHeap(
                 builder.append(AnsiColor.RED.code)
             }
             builder.append(String.format(Locale.getDefault(), "%10d: ", rowOperations.seqNo))
-            if (plotSizes.before < plotSizes.after) {
-                repeat(plotSizes.before) {
-                    builder.append(plotSymbols.default)
-                }
-                builder.append(DiffColor.ADD.color.code)
-                repeat(plotSizes.after - plotSizes.before) {
-                    builder.append(plotSymbols.alloc)
-                }
-                builder.append(AnsiColor.RESET.code)
-            } else {
-                repeat(plotSizes.after) {
-                    builder.append(plotSymbols.default)
-                }
-                val sizeChange = plotSizes.before - plotSizes.after
-                if (0 < sizeChange) {
-                    builder.append(DiffColor.DEL.color.code)
-                    repeat(sizeChange) {
-                        builder.append(plotSymbols.dealloc)
-                    }
-                    builder.append(AnsiColor.RESET.code)
-                }
-            }
+            builder.append(plotHeapOperationBar(rowPlotSizes, plotSymbols))
+
             if (!matchesAlloc) {
                 builder.append(AnsiColor.RESET.code)
             }
@@ -384,7 +432,7 @@ data class TrackedHeap(
             sizeChange: HeapSizeChange,
             maxHeapSize: Int,
             columns: Int,
-        ) = PlotSizes(
+        ) = RowPlotSizes(
             numSymbols(sizeChange.before, maxHeapSize, columns),
             numSymbols(sizeChange.after, maxHeapSize, columns),
         )
@@ -422,10 +470,11 @@ data class TrackedHeap(
         }
         val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
         val plotSymbols =
-            PlotSymbols(
+            RowPlotSymbols(
                 '#',
                 '+',
                 '-',
+                '*',
             )
         for (rowSeqNo in operationRange step operationsPerRow) {
             val matchesAlloc = heapGraph.matchesAlloc[rowSeqNo]
