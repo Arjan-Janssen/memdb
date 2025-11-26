@@ -15,7 +15,7 @@ The captured heap operations can then be further analyzed in the client tool. Th
 
 ## Environment setup
 
-**MemDB** consists of a client and a server. The applicatinos are written in different programming languages and require separate environment setups. They can be compiled installed independently.
+**MemDB** consists of a client and a server. The applications are written in different programming languages and require separate environment setups. They can be compiled and installed independently.
 
 ### Server
 
@@ -169,10 +169,10 @@ This project is licensed under the FreeBSD License - see LICENSE.md for details.
 
 ## Future work
 
-* Handle long lable widths during graph plotting
-* Stack trace should be truncated to relevant functions
-* Labels with spaces should be supported
-* Arrow up / command history
+* Handle long label widths for graph plotting
+* Backtrace should be truncated to only show relevant functions
+* Labels with spaces should be supporting syntax such as "my label".."your label" for diffs.
+* Add support for command history in the interactive mode - using arrow up to show previous commands.
 * Setting default settings (columns, rows, etc) in a configuration file.
 * Added a bt command for only printing the backtrace of an operation.
 * Add a markers command that shows all the markers in the tracked heap.
