@@ -466,7 +466,7 @@ data class TrackedHeap(
         fun numPlotCharacters(
             size: Int,
             maxHeapSize: Int,
-        ) = if (maxHeapSize > 0) (size * dimensions.columns) / maxHeapSize else 0
+        ) = if (maxHeapSize > 0) ceil((size * dimensions.columns) / maxHeapSize.toDouble()).toInt() else 0
 
         fun numPlotCharacters(
             sizeChange: HeapSizeChange,
