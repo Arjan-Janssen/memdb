@@ -95,11 +95,33 @@ class HeapOperationTest {
     }
 
     @Test
-    fun `toString is readable and contains all data`() {
-        val seqNo = 20
+    fun `toString is readable and contains all data for allocation`() {
+        val expectedSeqNo = 26
+        val alloc =
+            HeapOperation
+                .Builder(expectedSeqNo)
+                .alloc(2, 16)
+                .threadId(5)
+                .sinceServerStart(300.toDuration(DurationUnit.MILLISECONDS))
+                .backtrace("expected backtrace")
+                .build()
+
+        val expectedStringBacktrace =
+            """alloc[seq no: 26, duration: 300ms, address: 00000002, size: 16, thread id: 5, backtrace:
+expected backtrace]"""
+        assertEquals(expectedStringBacktrace, alloc.toString(true))
+
+        val expectedStringNoBacktrace =
+            "alloc[seq no: 26, duration: 300ms, address: 00000002, size: 16, thread id: 5, backtrace: <hidden>]"
+        assertEquals(expectedStringNoBacktrace, alloc.toString(false))
+    }
+
+    @Test
+    fun `toString is readable and contains all data for deallocation`() {
+        val expectedSeqNo = 20
         val dealloc =
             HeapOperation
-                .Builder(seqNo)
+                .Builder(expectedSeqNo)
                 .dealloc(2)
                 .threadId(4)
                 .sinceServerStart(200.toDuration(DurationUnit.MILLISECONDS))
@@ -107,13 +129,11 @@ class HeapOperationTest {
                 .build()
 
         val expectedStringBacktrace =
-"""dealloc[seq no: 20, kind: Dealloc, duration: 200ms, address: 00000002, size: 0, thread id: 4, backtrace:
-expected backtrace]"""
+            "dealloc[seq no: 20, duration: 200ms, address: 00000002, thread id: 4, backtrace:\nexpected backtrace]"
         assertEquals(expectedStringBacktrace, dealloc.toString(true))
 
         val expectedStringNoBacktrace =
-            "dealloc[seq no: 20, kind: Dealloc, duration: 200ms, " +
-                "address: 00000002, size: 0, thread id: 4, backtrace: <hidden>]"
+            "dealloc[seq no: 20, duration: 200ms, address: 00000002, thread id: 4, backtrace: <hidden>]"
         assertEquals(expectedStringNoBacktrace, dealloc.toString(false))
     }
 }

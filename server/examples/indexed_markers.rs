@@ -1,11 +1,12 @@
 use std::process;
 
-const NUM_ITERATIONS: i64 = 100;
-const GROW_SIZE: i64 = 10000;
+const NUM_ITERATIONS: i64 = 25;
+const GROW_SIZE_PER_ITERATION: i64 = 10000;
 
 fn growing_vec(iteration: i64) {
     let mut growing_vec = vec![1, 2, 3];
-    for i in 0..GROW_SIZE {
+    let grow_size = GROW_SIZE_PER_ITERATION * (iteration + 1);
+    for i in 0..grow_size {
         growing_vec.push(i);
     }
     memdb_lib::server::send_marker_indexed("growing", iteration);

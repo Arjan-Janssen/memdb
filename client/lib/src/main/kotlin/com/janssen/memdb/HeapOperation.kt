@@ -85,14 +85,15 @@ data class HeapOperation(
     fun toString(showBacktrace: Boolean) =
         StringBuilder()
             .append(if (kind == HeapOperationKind.Alloc) "alloc[" else "dealloc[")
-            .append("seq no: $seqNo, kind: $kind, duration: $durationSinceServerStart, ")
+            .append("seq no: $seqNo, duration: $durationSinceServerStart, ")
             .append(
                 String.format(
                     Locale.getDefault(),
                     "address: %s, ",
                     address.toHexString(),
                 ),
-            ).append("size: $size, thread id: $threadId, ")
+            ).append(if (kind == HeapOperationKind.Alloc) "size: $size, " else "")
+            .append("thread id: $threadId, ")
             .append("backtrace:${if (showBacktrace) "\n" + backtrace else " <hidden>"}")
             .append("]")
             .toString()
