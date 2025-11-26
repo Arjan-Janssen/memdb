@@ -521,7 +521,7 @@ markers:
         val trackedHeap = createMismatchedDealloc()
         val expectedGraph =
             """       allocated->          <-0
-${DiffColor.DEL.color.code}               0: ${AnsiColor.RESET.code}
+${DiffColor.MISMATCH.color.code}               0: ${AnsiColor.RESET.code}
 """
         assertEquals(
             expectedGraph,

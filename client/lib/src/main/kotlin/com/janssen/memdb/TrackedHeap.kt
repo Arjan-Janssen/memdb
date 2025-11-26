@@ -430,7 +430,7 @@ data class TrackedHeap(
             }
 
             if (!matchesAlloc) {
-                builder.append(AnsiColor.RED.code)
+                builder.append(DiffColor.MISMATCH.color.code)
             }
             builder.append(
                 String.format(
@@ -491,7 +491,7 @@ data class TrackedHeap(
         require(MIN_GRAPH_ROWS <= dimensions.rows)
 
         val heapGraph = HeapGraph.compute(heapOperations)
-        var maxHeapSize = maxHeapSize(heapGraph.sizeChanges)
+        val maxHeapSize = maxHeapSize(heapGraph.sizeChanges)
         require(0 <= maxHeapSize)
 
         val builder = StringBuilder()

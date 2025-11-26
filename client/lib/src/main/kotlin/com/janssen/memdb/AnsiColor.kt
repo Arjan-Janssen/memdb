@@ -5,6 +5,7 @@ enum class AnsiColor(
 ) {
     RED("\u001b[31m"),
     GREEN("\u001b[32m"),
+    YELLOW("\u001b[33m"),
     RESET("\u001b[0m"),
     ;
 
@@ -16,6 +17,7 @@ enum class DiffColor(
 ) {
     ADD(AnsiColor.GREEN),
     DEL(AnsiColor.RED),
+    MISMATCH(AnsiColor.YELLOW),
     CLR(AnsiColor.RESET),
     ;
 
