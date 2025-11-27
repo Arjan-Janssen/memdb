@@ -50,6 +50,11 @@ data class HeapOperation(
                 size = 0
             }
 
+        fun size(newSize: Int) =
+            apply {
+                size = newSize
+            }
+
         fun sentinel() =
             apply {
                 kind = HeapOperationKind.Alloc

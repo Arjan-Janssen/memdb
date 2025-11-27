@@ -19,6 +19,7 @@ data class Diff private constructor(
             .apply {
                 if (added.isEmpty() && removed.isEmpty()) {
                     append(NO_DIFF)
+                    return toString()
                 }
                 if (added.isNotEmpty()) {
                     append(DiffColor.ADD)

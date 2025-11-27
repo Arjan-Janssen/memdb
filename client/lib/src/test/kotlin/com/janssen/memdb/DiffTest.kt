@@ -8,7 +8,7 @@ class DiffTest {
         TrackedHeap
             .Builder()
             .addHeapOperation(HeapOperation.Builder().alloc(5, 2))
-            .addHeapOperation(HeapOperation.Builder().dealloc(5))
+            .addHeapOperation(HeapOperation.Builder().dealloc(5).size(2))
             .addMarker(Marker(0, "before"))
             .addMarker(Marker(2, "after"))
             .build()
@@ -78,5 +78,34 @@ class DiffTest {
         val diff = Diff.compute(trackedHeap, "1..0")
         assertEquals(0, diff.added.size)
         assertEquals(0, diff.removed.size)
+    }
+
+    @Test
+    @Suppress("MaxLineLength")
+    fun `toString prints difference on single allocation`() {
+        val trackedHeap = createMatchedAllocAndDeallocScenario()
+        val diff = Diff.compute(trackedHeap, "0..0")
+        val expectedString =
+"""${DiffColor.ADD.color.code}+ alloc[seq no: 0, duration: 0s, address: 00000005, size: 2, thread id: 0, backtrace: <hidden>]
+${DiffColor.CLR.color.code}${DiffColor.ADD.color.code}+2${DiffColor.CLR.color.code} bytes, ${DiffColor.DEL.color.code}-0${DiffColor.CLR.color.code} bytes"""
+        assertEquals(expectedString, diff.toString())
+    }
+
+    @Test
+    @Suppress("MaxLineLength")
+    fun `toString print difference on single deallocation`() {
+        val trackedHeap = createMatchedAllocAndDeallocScenario()
+        val diff = Diff.compute(trackedHeap, "1..1")
+        val expectedString =
+            """${DiffColor.DEL.color.code}- dealloc[seq no: 0, duration: 0s, address: 00000005, size: 2, thread id: 0, backtrace: <hidden>]
+${DiffColor.CLR.color.code}${DiffColor.ADD.color.code}+0${DiffColor.CLR.color.code} bytes, ${DiffColor.DEL.color.code}-2${DiffColor.CLR.color.code} bytes"""
+        assertEquals(expectedString, diff.toString())
+    }
+
+    @Test
+    fun `toString prints no-diff if there is no difference`() {
+        val trackedHeap = createMatchedAllocAndDeallocScenario()
+        val diff = Diff.compute(trackedHeap, "0..1")
+        assertEquals(NO_DIFF, diff.toString())
     }
 }
