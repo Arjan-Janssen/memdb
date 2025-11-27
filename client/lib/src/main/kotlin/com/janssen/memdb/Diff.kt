@@ -1,6 +1,5 @@
 package com.janssen.memdb
 
-import com.janssen.memdb.TrackedHeap.Range
 import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.max
@@ -15,85 +14,80 @@ data class Diff private constructor(
     val added: List<HeapOperation>,
     val removed: List<HeapOperation>,
 ) {
-    override fun toString(): String {
-        val builder =
-            StringBuilder()
+    override fun toString() =
+        StringBuilder()
+            .apply {
+                if (added.isEmpty() && removed.isEmpty()) {
+                    append(NO_DIFF)
+                }
+            }.apply {
+                if (added.isNotEmpty()) {
+                    append(DiffColor.ADD)
+                    added.forEach {
+                        append("+ ")
+                        appendLine(it.toString())
+                    }
+                    append(DiffColor.CLR)
+                }
 
-        if (added.isEmpty() && removed.isEmpty()) {
-            builder.append(NO_DIFF)
-        }
+                if (removed.isNotEmpty()) {
+                    append(DiffColor.DEL)
+                    removed.forEach {
+                        append("- ")
+                        appendLine(it.toString())
+                    }
+                    append(DiffColor.CLR)
+                }
 
-        if (added.isNotEmpty()) {
-            builder.append(DiffColor.ADD)
-            added.forEach {
-                builder
-                    .append("+ ")
-                    .appendLine(it.toString())
-            }
-            builder.append(DiffColor.CLR)
-        }
+                val addedBytes = added.sumOf { it.size }
+                val removedBytes = removed.sumOf { it.size }
+                append("${DiffColor.ADD.color.code}+$addedBytes${DiffColor.CLR.color.code} bytes, ")
+                append("${DiffColor.DEL.color.code}-$removedBytes${DiffColor.CLR.color.code} bytes")
+            }.toString()
 
-        if (removed.isNotEmpty()) {
-            builder.append(DiffColor.DEL)
-            removed.forEach {
-                builder
-                    .append("- ")
-                    .appendLine(it.toString())
-            }
-            builder.append(DiffColor.CLR)
-        }
+    fun plot(dimensions: TrackedHeap.PlotDimensions) =
+        StringBuilder()
+            .apply {
+                val addedByAddress = added.groupBy { it.address }.toSortedMap()
+                val removedByAddress = removed.groupBy { it.address }.toSortedMap()
+                val addedAndRemovedByAddress = (added + removed).groupBy { it.address }.toSortedMap()
+                if (addedAndRemovedByAddress.isEmpty()) {
+                    return NO_DIFF
+                }
+                val minAddress = addedAndRemovedByAddress.firstKey()
+                val lastAddress =
+                    addedAndRemovedByAddress.lastKey() +
+                        addedAndRemovedByAddress
+                            .lastEntry()
+                            .value
+                            .first()
+                            .size
+                val maxAddress =
+                    ceilToMultiple(
+                        lastAddress,
+                        dimensions.rows * dimensions.columns,
+                    )
 
-        val addedBytes = added.sumOf { it.size }
-        val removedBytes = removed.sumOf { it.size }
-        builder
-            .append("${DiffColor.ADD.color.code}+$addedBytes${DiffColor.CLR.color.code} bytes, ")
-            .append("${DiffColor.DEL.color.code}-$removedBytes${DiffColor.CLR.color.code} bytes")
-        return builder.toString()
-    }
+                println("Address range: $minAddress..$maxAddress")
+                val addressRange = maxAddress - minAddress
+                val addressRangePerRow = addressRange / dimensions.rows
+                val addressRangePerCell = addressRangePerRow / dimensions.columns
 
-    fun plot(dimensions: TrackedHeap.PlotDimensions): String {
-        val builder = StringBuilder()
-        val addedByAddress = added.groupBy { it.address }.toSortedMap()
-        val removedByAddress = removed.groupBy { it.address }.toSortedMap()
-        val addedAndRemovedByAddress = (added + removed).groupBy { it.address }.toSortedMap()
-        if (addedAndRemovedByAddress.isEmpty()) {
-            return NO_DIFF
-        }
-        val minAddress = addedAndRemovedByAddress.firstKey()
-        val lastAddress =
-            addedAndRemovedByAddress.lastKey() +
-                addedAndRemovedByAddress
-                    .lastEntry()
-                    .value
-                    .first()
-                    .size
-        val maxAddress =
-            ceilToMultiple(
-                lastAddress,
-                dimensions.rows * dimensions.columns,
-            )
+                val addedAllocIt = addedByAddress.iterator().peeking()
+                val removedAllocIt = removedByAddress.iterator().peeking()
 
-        println("Address range: $minAddress..$maxAddress")
-        val addressRange = maxAddress - minAddress
-        val addressRangePerRow = addressRange / dimensions.rows
-        val addressRangePerCell = addressRangePerRow / dimensions.columns
-
-        val addedAllocIt = addedByAddress.iterator().peeking()
-        val removedAllocIt = removedByAddress.iterator().peeking()
-        for (rowStartAddress in minAddress..maxAddress step addressRangePerRow) {
-            builder.append(
-                plotRow(
-                    rowStartAddress,
-                    addressRangePerCell,
-                    dimensions.columns,
-                    addedAllocIt,
-                    removedAllocIt,
-                ),
-            )
-        }
-
-        return builder.toString()
-    }
+                for (rowStartAddress in minAddress..maxAddress step addressRangePerRow) {
+                    append(
+                        plotRow(
+                            rowStartAddress,
+                            addressRangePerCell,
+                            dimensions.columns,
+                            addedAllocIt,
+                            removedAllocIt,
+                        ),
+                    )
+                }
+            }.toString()
 
     companion object {
         private fun ceilToMultiple(
@@ -151,21 +145,24 @@ data class Diff private constructor(
             if (!inAddressRange(alloc, cellAddressRange)) {
                 return false
             }
-            if (added) {
-                builder.append(AnsiColor.GREEN)
-            } else {
-                builder.append(AnsiColor.RED)
-            }
 
-            builder.append(
-                String.format(
-                    Locale.getDefault(),
-                    "%${GRAPH_COLUMN_WIDTH - 1}d",
-                    alloc.seqNo,
-                ),
-            )
-            builder.append(if (added) '+' else '-')
-            builder.append(AnsiColor.RESET)
+            builder.apply {
+                if (added) {
+                    append(AnsiColor.GREEN)
+                } else {
+                    append(AnsiColor.RED)
+                }
+
+                append(
+                    String.format(
+                        Locale.getDefault(),
+                        "%${GRAPH_COLUMN_WIDTH - 1}d",
+                        alloc.seqNo,
+                    ),
+                )
+                append(if (added) '+' else '-')
+                append(AnsiColor.RESET)
+            }
             return true
         }
 
@@ -176,30 +173,29 @@ data class Diff private constructor(
             columns: Int,
             addedAllocIt: HeapOperationIterator,
             removedAllocIt: HeapOperationIterator,
-        ): String {
-            val builder = StringBuilder()
-            builder.append("${rowStartAddress.toInt().toHexString()}: ")
-            for (i in 0..<columns) {
-                val cellAddressRange =
-                    IntRange(
-                        rowStartAddress + addressRangePerCell * i,
-                        rowStartAddress + addressRangePerCell * (i + 1) - 1,
-                    )
-                if (tryPlotCellAlloc(builder, addedAllocIt, cellAddressRange, true)) {
-                    continue
-                }
-                if (tryPlotCellAlloc(builder, removedAllocIt, cellAddressRange, false)) {
-                    continue
-                }
+        ) = StringBuilder()
+            .apply {
+                append("${rowStartAddress.toInt().toHexString()}: ")
+                for (i in 0..<columns) {
+                    val cellAddressRange =
+                        IntRange(
+                            rowStartAddress + addressRangePerCell * i,
+                            rowStartAddress + addressRangePerCell * (i + 1) - 1,
+                        )
+                    if (tryPlotCellAlloc(this, addedAllocIt, cellAddressRange, true)) {
+                        continue
+                    }
+                    if (tryPlotCellAlloc(this, removedAllocIt, cellAddressRange, false)) {
+                        continue
+                    }
 
-                repeat(GRAPH_COLUMN_WIDTH - 1) {
-                    builder.append(" ")
+                    repeat(GRAPH_COLUMN_WIDTH - 1) {
+                        append(" ")
+                    }
+                    append('.')
                 }
-                builder.append('.')
-            }
-            builder.appendLine()
-            return builder.toString()
-        }
+                appendLine()
+            }.toString()
 
         private fun removeAllocation(
             added: MutableSet<HeapOperation>,
@@ -222,7 +218,7 @@ data class Diff private constructor(
             diffSpec: String,
         ): Diff {
             val diffRange = TrackedHeap.Range.fromString(trackedHeap, diffSpec)
-            val truncateRange =
+            val selectRange =
                 TrackedHeap.Range.fromIntRange(
                     trackedHeap,
                     IntRange(
@@ -230,10 +226,10 @@ data class Diff private constructor(
                         max(diffRange.range.first, diffRange.range.last),
                     ),
                 )
-            val truncatedHeap = TrackedHeap.truncate(truncateRange)
+            val selectedHeap = trackedHeap.select(selectRange)
             val added = mutableSetOf<HeapOperation>()
             val removed = mutableSetOf<HeapOperation>()
-            truncatedHeap.heapOperations.forEach {
+            selectedHeap.heapOperations.forEach {
                 when (it.kind) {
                     HeapOperationKind.Alloc -> {
                         added.add(it)

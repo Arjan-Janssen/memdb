@@ -132,11 +132,11 @@ class MemDB(
                     "Both sequence numbers and marker names can be specified " +
                     "[ from-position..to-position ].",
         )
-        val truncateOption by parser.option(
+        val selectOption by parser.option(
             ArgType.String,
             shortName = "t",
-            fullName = "truncate",
-            description = "Truncate the tracked heap",
+            fullName = "select",
+            description = "Select a subrange from the tracked heap",
         )
         val printOption by parser.option(
             ArgType.Int,
@@ -182,9 +182,9 @@ class MemDB(
                 doPrint(heap, it, true)
             }
         }
-        truncateOption?.let {
+        selectOption?.let {
             trackedHeap?.let { heap ->
-                doTruncate(heap, it)
+                doSelect(heap, it)
             }
         }
         saveOption?.let { filePath ->
@@ -256,13 +256,13 @@ class MemDB(
         )
     }
 
-    fun doTruncate(
+    fun doSelect(
         trackedHeap: TrackedHeap,
         rangeSpec: String,
     ) {
         val diffSpec = TrackedHeap.Range.fromString(trackedHeap, rangeSpec)
         println("Truncating heap to $diffSpec...")
-        this.trackedHeap = TrackedHeap.truncate(diffSpec)
+        this.trackedHeap = trackedHeap.select(diffSpec)
     }
 
     fun doPrint(

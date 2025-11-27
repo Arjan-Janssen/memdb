@@ -35,41 +35,41 @@ data class HeapOperation(
             )
 
         fun alloc(
-            address: Int,
-            size: Int,
+            newAddress: Int,
+            newSize: Int,
         ) = apply {
-            this.kind = HeapOperationKind.Alloc
-            this.address = address
-            this.size = size
+            kind = HeapOperationKind.Alloc
+            address = newAddress
+            size = newSize
         }
 
-        fun dealloc(address: Int) =
+        fun dealloc(newAddress: Int) =
             apply {
-                this.kind = HeapOperationKind.Dealloc
-                this.address = address
-                this.size = 0
+                kind = HeapOperationKind.Dealloc
+                address = newAddress
+                size = 0
             }
 
         fun sentinel() =
             apply {
-                this.kind = HeapOperationKind.Alloc
-                this.address = 0
-                this.size = 0
+                kind = HeapOperationKind.Alloc
+                address = 0
+                size = 0
             }
 
-        fun threadId(threadId: Int) =
+        fun threadId(newThreadId: Int) =
             apply {
-                this.threadId = threadId
+                threadId = newThreadId
             }
 
-        fun sinceServerStart(duration: Duration) =
+        fun sinceServerStart(newDuration: Duration) =
             apply {
-                this.durationSinceServerStart = duration
+                durationSinceServerStart = newDuration
             }
 
-        fun backtrace(backtrace: String) =
+        fun backtrace(newBacktrace: String) =
             apply {
-                this.backtrace = backtrace
+                backtrace = newBacktrace
             }
 
         var kind = HeapOperationKind.Alloc
@@ -101,31 +101,25 @@ data class HeapOperation(
         fun fromProtobuf(
             seqNo: Int,
             proto: memdb.Message.HeapOperation,
-        ): HeapOperation {
-            val durationSinceServerStart = proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS)
-            val heapOperationType =
-                when (proto.kind) {
-                    Message.HeapOperation.Kind.Alloc -> {
-                        HeapOperationKind.Alloc
-                    }
-
-                    else -> {
-                        HeapOperationKind.Dealloc
-                    }
+        ) = HeapOperation(
+            seqNo,
+            when (proto.kind) {
+                Message.HeapOperation.Kind.Alloc -> {
+                    HeapOperationKind.Alloc
                 }
 
-            return HeapOperation(
-                seqNo,
-                heapOperationType,
-                durationSinceServerStart,
-                proto.address.toInt(),
-                proto.size.toInt(),
-                proto.threadId.toInt(),
-                proto.backtrace,
-            )
-        }
+                else -> {
+                    HeapOperationKind.Dealloc
+                }
+            },
+            proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS),
+            proto.address.toInt(),
+            proto.size.toInt(),
+            proto.threadId.toInt(),
+            proto.backtrace,
+        )
 
-        fun toProtobuf(heapOperation: HeapOperation): memdb.Message.HeapOperation =
+        fun toProtobuf(heapOperation: HeapOperation) =
             memdb.Message.HeapOperation
                 .newBuilder()
                 .setKind(

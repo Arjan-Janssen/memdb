@@ -88,9 +88,9 @@ class InteractiveMode(
         } ?: printNoTrackedHeap()
     }
 
-    private fun runTruncateCommand(args: List<String>) {
+    private fun runSelectCommand(args: List<String>) {
         memDB.trackedHeap?.let {
-            memDB.doTruncate(
+            memDB.doSelect(
                 it,
                 requiredArg(args, 1, "range-spec"),
             )
@@ -195,11 +195,11 @@ class InteractiveMode(
                 runDiffCommand(it)
             },
             Command(
-                "truncate",
-                "trunc",
-                "Truncate the heap to the specified range-selection [from-sequence-number..to-sequence-number]",
+                "select",
+                "sel",
+                "Select sub-range of the tracked heap [from-sequence-number..to-sequence-number]",
             ) {
-                runTruncateCommand(it)
+                runSelectCommand(it)
             },
             Command(
                 "histogram",

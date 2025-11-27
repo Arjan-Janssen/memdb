@@ -414,16 +414,20 @@ class TrackedHeapTest {
     }
 
     @Test
-    fun `truncate with single element range`() {
+    fun `select with single element range`() {
         val trackedHeap = createMatchingAllocDeallocPair()
-        val truncatedHeap =
-            TrackedHeap.truncate(
-                TrackedHeap.Range.fromIntRange(
-                    trackedHeap,
-                    IntRange(1, 1),
-                ),
-            )
-        assertEquals(1, truncatedHeap.heapOperations.size)
+        val selectedHeap =
+            createMatchingAllocDeallocPair()
+                .select(
+                    TrackedHeap.Range.fromIntRange(
+                        trackedHeap,
+                        IntRange(
+                            1,
+                            1,
+                        ),
+                    ),
+                )
+        assertEquals(1, selectedHeap.heapOperations.size)
     }
 
     @Test

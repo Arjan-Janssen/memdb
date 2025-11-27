@@ -7,19 +7,18 @@ import kotlin.takeHighestOneBit
 data class Histogram(
     val frequencyMap: Map<Int, Int>,
 ) {
-    override fun toString(): String {
-        val builder =
-            StringBuilder()
-                .appendLine("(alloc size:frequency):")
-        frequencyMap.forEach {
-            val formattedSize = String.format(Locale.getDefault(), "%10d", it.key)
-            builder.appendLine("${formattedSize}\t${it.value}")
-        }
-        return builder.toString()
-    }
+    override fun toString() =
+        StringBuilder()
+            .appendLine("(alloc size:frequency):")
+            .apply {
+                frequencyMap.forEach {
+                    val formattedSize = String.format(Locale.getDefault(), "%10d", it.key)
+                    appendLine("${formattedSize}\t${it.value}")
+                }
+            }.toString()
 
     companion object {
-        fun pow2Bucket(value: Int): Int =
+        fun pow2Bucket(value: Int) =
             if (value.takeHighestOneBit() == value) {
                 value
             } else {
@@ -29,13 +28,13 @@ data class Histogram(
         fun build(
             trackedHeap: TrackedHeap,
             buckets: Boolean,
-        ): Histogram {
-            val map =
+        ) = Histogram(
+            TreeMap(
                 trackedHeap.heapOperations
                     .filter { it.kind == HeapOperationKind.Alloc }
                     .groupingBy { if (buckets) pow2Bucket(it.size) else it.size }
-                    .eachCount()
-            return Histogram(TreeMap(map))
-        }
+                    .eachCount(),
+            ),
+        )
     }
 }

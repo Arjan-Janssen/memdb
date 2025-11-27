@@ -207,41 +207,40 @@ data class TrackedHeap(
             builder: StringBuilder,
             heapOperation: HeapOperation,
             cumulativeSize: Int,
-        ) {
+        ) = builder.apply {
             if (!heapOperation.sentinel()) {
-                builder.append("\n  $heapOperation")
-                builder.append(" -> $cumulativeSize")
+                append("\n  $heapOperation")
+                append(" -> $cumulativeSize")
             }
         }
 
         fun adjustSize(
             cumulativeSize: Int,
             heapOperation: HeapOperation,
-        ): Int =
-            if (heapOperation.kind == HeapOperationKind.Alloc) {
-                cumulativeSize + heapOperation.size
-            } else {
-                cumulativeSize - heapOperation.size
-            }
-
-        val builder = StringBuilder()
-        if (heapOperations.isNotEmpty()) {
-            builder.append("heap operations:")
-            var cumulativeSize = 0
-            heapOperations.forEach {
-                cumulativeSize = adjustSize(cumulativeSize, it)
-                appendHeapOperation(builder, it, cumulativeSize)
-            }
+        ) = if (heapOperation.kind == HeapOperationKind.Alloc) {
+            cumulativeSize + heapOperation.size
+        } else {
+            cumulativeSize - heapOperation.size
         }
 
-        if (markers.isNotEmpty()) {
-            builder.append("\n\nmarkers:")
-            markers.forEach {
-                builder.append("\n  $it")
-            }
-        }
+        return StringBuilder()
+            .apply {
+                if (heapOperations.isNotEmpty()) {
+                    append("heap operations:")
+                    var cumulativeSize = 0
+                    heapOperations.forEach {
+                        cumulativeSize = adjustSize(cumulativeSize, it)
+                        appendHeapOperation(this, it, cumulativeSize)
+                    }
+                }
 
-        return builder.toString()
+                if (markers.isNotEmpty()) {
+                    append("\n\nmarkers:")
+                    markers.forEach {
+                        append("\n  $it")
+                    }
+                }
+            }.toString()
     }
 
     data class RowOperations(
@@ -299,58 +298,56 @@ data class TrackedHeap(
         fun plotHeading(
             columns: Int,
             maxHeapSize: Int,
-        ): String {
-            require(MIN_GRAPH_COLUMNS <= columns)
-            require(0 <= maxHeapSize)
+        ) = StringBuilder()
+            .apply {
+                require(MIN_GRAPH_COLUMNS <= columns)
+                require(0 <= maxHeapSize)
 
-            val builder = StringBuilder()
-            builder.append(String.format(Locale.getDefault(), "%16s->", "allocated"))
-            repeat(columns) {
-                builder.append(' ')
-            }
-            builder.append("<-")
-            builder.append(maxHeapSize.toString())
-            return builder.toString()
-        }
+                append(String.format(Locale.getDefault(), "%16s->", "allocated"))
+                repeat(columns) {
+                    append(' ')
+                }
+                append("<-")
+                append(maxHeapSize.toString())
+            }.toString()
 
         fun plotMarker(
             marker: Marker,
             columns: Int,
-        ): String {
-            fun mangleMarkerName(
-                name: String,
-                index: Int,
-            ) = if (marker.index == 0) {
-                String.format(
-                    Locale.getDefault(),
-                    "%s",
-                    marker.name,
-                )
-            } else {
-                String.format(
-                    Locale.getDefault(),
-                    "%s:%d",
-                    marker.name,
-                    marker.index,
-                )
-            }
+        ) = StringBuilder()
+            .apply {
+                fun mangleMarkerName(
+                    name: String,
+                    index: Int,
+                ) = if (marker.index == 0) {
+                    String.format(
+                        Locale.getDefault(),
+                        "%s",
+                        marker.name,
+                    )
+                } else {
+                    String.format(
+                        Locale.getDefault(),
+                        "%s:%d",
+                        marker.name,
+                        marker.index,
+                    )
+                }
 
-            require(MIN_GRAPH_COLUMNS <= columns)
+                require(MIN_GRAPH_COLUMNS <= columns)
 
-            val builder = StringBuilder()
-            val mangledMarkerName = mangleMarkerName(marker.name, marker.index)
-            builder.append(
-                String.format(
-                    Locale.getDefault(),
-                    "%16s: ",
-                    mangledMarkerName,
-                ),
-            )
-            repeat(columns) {
-                builder.append('-')
-            }
-            return builder.toString()
-        }
+                append(
+                    String.format(
+                        Locale.getDefault(),
+                        "%16s: ",
+                        mangleMarkerName(marker.name, marker.index),
+                    ),
+                )
+
+                repeat(columns) {
+                    append('-')
+                }
+            }.toString()
 
         data class RowPlotSizes(
             val before: Int,
@@ -385,89 +382,88 @@ data class TrackedHeap(
                     color: AnsiColor,
                     numCharacters: Int,
                     plotCharacters: BarPlotCharacters,
-                ): String {
-                    require(0 <= numCharacters)
+                ) = StringBuilder()
+                    .apply {
+                        require(0 <= numCharacters)
 
-                    if (numCharacters == 0) {
-                        return ""
-                    }
-
-                    val builder =
-                        StringBuilder()
-                            .append(color.code)
-                            .append(plotCharacters.first)
-                    repeat(numCharacters - 2) {
-                        builder.append(plotCharacters.default)
-                    }
-                    if (numCharacters > 1) {
-                        builder.append(plotCharacters.last)
-                    }
-                    return builder
-                        .append(AnsiColor.RESET.code)
-                        .toString()
-                }
-
-                val builder = StringBuilder()
-                repeat(min(rowPlotSizes.before, rowPlotSizes.after)) {
-                    builder.append(plotCharacters.default)
-                }
+                        if (numCharacters == 0) {
+                            return ""
+                        }
+                        append(color.code)
+                        append(plotCharacters.first)
+                        repeat(numCharacters - 2) {
+                            append(plotCharacters.default)
+                        }
+                        if (numCharacters > 1) {
+                            append(plotCharacters.last)
+                        }
+                        append(AnsiColor.RESET.code)
+                    }.toString()
 
                 val sizeChange = rowPlotSizes.after - rowPlotSizes.before
-                return builder
-                    .append(
-                        if (0 < sizeChange) {
-                            plotColoredBar(
-                                DiffColor.ADD.color,
-                                sizeChange,
-                                BarPlotCharacters(
-                                    plotCharacters.alloc,
-                                    plotCharacters.start,
-                                    plotCharacters.alloc,
-                                ),
-                            )
-                        } else {
-                            plotColoredBar(
-                                DiffColor.DEL.color,
-                                -sizeChange,
-                                BarPlotCharacters(
-                                    plotCharacters.dealloc,
-                                    plotCharacters.dealloc,
-                                    plotCharacters.start,
-                                ),
-                            )
-                        },
-                    ).toString()
+                return StringBuilder()
+                    .apply {
+                        repeat(min(rowPlotSizes.before, rowPlotSizes.after)) {
+                            append(plotCharacters.default)
+                        }
+                        append(
+                            if (0 < sizeChange) {
+                                plotColoredBar(
+                                    DiffColor.ADD.color,
+                                    sizeChange,
+                                    BarPlotCharacters(
+                                        plotCharacters.alloc,
+                                        plotCharacters.start,
+                                        plotCharacters.alloc,
+                                    ),
+                                )
+                            } else {
+                                plotColoredBar(
+                                    DiffColor.DEL.color,
+                                    -sizeChange,
+                                    BarPlotCharacters(
+                                        plotCharacters.dealloc,
+                                        plotCharacters.dealloc,
+                                        plotCharacters.start,
+                                    ),
+                                )
+                            },
+                        )
+                    }.toString()
             }
 
-            val builder = StringBuilder()
-            markers(rowOperations.seqNo).forEach {
-                builder.appendLine(plotMarker(it, columns))
-            }
-
-            builder
-                .append(
-                    String.format(
-                        Locale.getDefault(),
-                        "%16d: ",
-                        rowOperations.seqNo,
-                    ),
-                ).append(
-                    plotHeapOperationBar(
-                        rowPlotSizes,
-                        plotCharacters,
-                    ),
-                ).appendLine()
-
-            // plot markers associated with skipped heap operations
-            val markerEndSeqNo = min(rowOperations.seqNo + rowOperations.count - 1, rowOperations.plotRange.last)
-            val markerRange = rowOperations.seqNo + 1..markerEndSeqNo
-            for (skippedSeqNo in markerRange) {
-                markers(skippedSeqNo).forEach {
-                    builder.appendLine(plotMarker(it, columns))
-                }
-            }
-
-            return builder.toString()
+            return StringBuilder()
+                .apply {
+                    markers(rowOperations.seqNo).forEach {
+                        appendLine(plotMarker(it, columns))
+                    }
+                    append(
+                        String.format(
+                            Locale.getDefault(),
+                            "%16d: ",
+                            rowOperations.seqNo,
+                        ),
+                    )
+                    append(
+                        plotHeapOperationBar(
+                            rowPlotSizes,
+                            plotCharacters,
+                        ),
+                    )
+                    appendLine()
+                    // plot markers associated with skipped heap operations
+                    val markerEndSeqNo =
+                        min(
+                            rowOperations.seqNo + rowOperations.count - 1,
+                            rowOperations.plotRange.last,
+                        )
+                    val markerRange = rowOperations.seqNo + 1..markerEndSeqNo
+                    for (skippedSeqNo in markerRange) {
+                        markers(skippedSeqNo).forEach {
+                            appendLine(plotMarker(it, columns))
+                        }
+                    }
+                }.toString()
         }
 
         fun numPlotCharacters(
@@ -485,84 +481,81 @@ data class TrackedHeap(
 
         fun maxHeapSize(sizeChanges: List<HeapSizeChange>): Int {
             var maxHeapSize = 0
-            sizeChanges.slice(operationRange).forEach {
+            sizeChanges.slice(operationRange).map {
                 maxHeapSize = max(maxHeapSize, it.after)
             }
             return maxHeapSize
         }
 
-        require(0 <= operationRange.first)
+        require(operationRange.first >= 0)
         require(operationRange.first <= operationRange.last)
         require(operationRange.last < heapOperations.size)
-        require(MIN_GRAPH_COLUMNS <= dimensions.columns)
-        require(MIN_GRAPH_ROWS <= dimensions.rows)
+        require(dimensions.columns >= MIN_GRAPH_COLUMNS)
+        require(dimensions.rows >= MIN_GRAPH_ROWS)
 
         val heapGraph = HeapGraph.compute(heapOperations)
         val maxHeapSize = maxHeapSize(heapGraph.sizeChanges)
         require(0 <= maxHeapSize)
 
-        val builder = StringBuilder()
-        builder.appendLine(plotHeading(dimensions.columns, maxHeapSize))
+        return StringBuilder()
+            .apply {
+                appendLine(plotHeading(dimensions.columns, maxHeapSize))
+                if (heapOperations.isEmpty()) {
+                    append(NO_HEAP_OPERATIONS)
+                    return toString()
+                }
 
-        if (heapOperations.isEmpty()) {
-            builder.append(NO_HEAP_OPERATIONS)
-            return builder.toString()
-        }
+                val numOperations = 1 + (operationRange.last - operationRange.first)
+                val clampedRows = if (numOperations < dimensions.rows) numOperations else dimensions.rows
+                if (clampedRows == 0) {
+                    return toString()
+                }
+                val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
+                val plotCharacters =
+                    RowPlotCharacters(
+                        '#',
+                        '+',
+                        '-',
+                        '*',
+                    )
+                for (rowSeqNo in operationRange step operationsPerRow) {
+                    append(
+                        plotRow(
+                            RowOperations(
+                                rowSeqNo,
+                                operationsPerRow,
+                                operationRange,
+                            ),
+                            dimensions.columns,
+                            numPlotCharacters(
+                                heapGraph.sizeChanges[rowSeqNo],
+                                maxHeapSize,
+                            ),
+                            plotCharacters,
+                        ),
+                    )
+                }
 
-        val numOperations = 1 + (operationRange.last - operationRange.first)
-        val clampedRows = if (numOperations < dimensions.rows) numOperations else dimensions.rows
-        if (clampedRows == 0) {
-            return builder.toString()
-        }
-        val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
-        val plotCharacters =
-            RowPlotCharacters(
-                '#',
-                '+',
-                '-',
-                '*',
-            )
-        for (rowSeqNo in operationRange step operationsPerRow) {
-            builder.append(
-                plotRow(
-                    RowOperations(
-                        rowSeqNo,
-                        operationsPerRow,
-                        operationRange,
-                    ),
-                    dimensions.columns,
-                    numPlotCharacters(
-                        heapGraph.sizeChanges[rowSeqNo],
-                        maxHeapSize,
-                    ),
-                    plotCharacters,
-                ),
-            )
-        }
-
-        // print potential terminating markers
-        markers(operationRange.last + 1).forEach {
-            builder.appendLine(plotMarker(it, dimensions.columns))
-        }
-
-        return builder.toString()
+                // print potential terminating markers
+                markers(operationRange.last + 1).forEach {
+                    appendLine(plotMarker(it, dimensions.columns))
+                }
+            }.toString()
     }
 
-    fun saveToFile(filePath: String) {
-        val outputStream = File(filePath).outputStream()
-        toProtobuf().writeTo(outputStream)
-    }
+    fun saveToFile(filePath: String) = toProtobuf().writeTo(File(filePath).outputStream())
 
-    fun toProtobuf(): memdb.Message.Update {
-        val builder = memdb.Message.Update.newBuilder()
-        heapOperations.forEach {
-            builder.addHeapOperations(HeapOperation.toProtobuf(it))
-        }
-        markers.forEach {
-            builder.addMarkers(Marker.toProtobuf(it))
-        }
-        return builder.build()
-    }
+    fun toProtobuf(): memdb.Message.Update =
+        memdb.Message.Update
+            .newBuilder()
+            .apply {
+                heapOperations.forEach {
+                    addHeapOperations(HeapOperation.toProtobuf(it))
+                }
+                markers.forEach {
+                    addMarkers(Marker.toProtobuf(it))
+                }
+            }.build()
 
     fun withoutUnmatchedDeallocs(): TrackedHeap {
         val allocsByAddress = mutableMapOf<Int, HeapOperation>()
@@ -586,8 +579,10 @@ data class TrackedHeap(
         return TrackedHeap(validHeapOperations, markers)
     }
 
+    fun select(range: Range): TrackedHeap = TrackedHeap(heapOperations.slice(range.range), markers)
+
     companion object {
-        fun concatenate(trackedHeaps: List<TrackedHeap>): TrackedHeap =
+        fun concatenate(trackedHeaps: List<TrackedHeap>) =
             Builder()
                 .addHeapOperations(
                     trackedHeaps
@@ -597,17 +592,14 @@ data class TrackedHeap(
                 ).addMarkers(trackedHeaps.map { it.markers }.flatten())
                 .build()
 
-        fun truncate(range: Range): TrackedHeap {
-            val trackedHeap = range.trackedHeap
-            val truncatedHeapOperations = trackedHeap.heapOperations.slice(range.range).toMutableList()
-            return TrackedHeap(truncatedHeapOperations, trackedHeap.markers)
-        }
-
-        fun loadFromFile(filePath: String): TrackedHeap {
-            val inputStream = File(filePath).inputStream()
-            val proto = memdb.Message.Update.parseFrom(inputStream)
-            return fromProtobuf(proto)
-        }
+        fun loadFromFile(filePath: String) =
+            fromProtobuf(
+                memdb.Message.Update.parseFrom(
+                    File(
+                        filePath,
+                    ).inputStream(),
+                ),
+            )
 
         fun fromProtobuf(update: memdb.Message.Update): TrackedHeap {
             fun isSentinel(heapOperation: memdb.Message.HeapOperation) =
