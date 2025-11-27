@@ -5,7 +5,6 @@ enum class AnsiColor(
 ) {
     RED("\u001b[31m"),
     GREEN("\u001b[32m"),
-    YELLOW("\u001b[33m"),
     RESET("\u001b[0m"),
     ;
 
