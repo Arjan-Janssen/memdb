@@ -39,8 +39,16 @@ data class Diff private constructor(
                 }
                 val addedBytes = added.sumOf { it.size }
                 val removedBytes = removed.sumOf { it.size }
-                append("${DiffColor.ADD.color.code}+$addedBytes${DiffColor.CLR.color.code} bytes, ")
-                append("${DiffColor.DEL.color.code}-$removedBytes${DiffColor.CLR.color.code} bytes")
+                if (addedBytes > 0) {
+                    append("${DiffColor.ADD.color.code}+ $addedBytes bytes${DiffColor.CLR.color.code}")
+                    if (removedBytes > 0) {
+                        append(", ")
+                    }
+                }
+
+                if (removedBytes > 0) {
+                    append("${DiffColor.DEL.color.code}- $removedBytes bytes${DiffColor.CLR.color.code}")
+                }
             }.toString()
 
     fun plot(dimensions: TrackedHeap.PlotDimensions) =
