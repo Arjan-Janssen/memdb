@@ -358,7 +358,6 @@ data class TrackedHeap(
             val default: Char,
             val alloc: Char,
             val dealloc: Char,
-            val start: Char,
         )
 
         @Suppress("LongMethod")
@@ -372,16 +371,10 @@ data class TrackedHeap(
                 rowPlotSizes: RowPlotSizes,
                 plotCharacters: RowPlotCharacters,
             ): String {
-                data class BarPlotCharacters(
-                    val default: Char,
-                    val first: Char,
-                    val last: Char,
-                )
-
                 fun plotColoredBar(
                     color: AnsiColor,
                     numCharacters: Int,
-                    plotCharacters: BarPlotCharacters,
+                    plotCharacter: Char,
                 ) = StringBuilder()
                     .apply {
                         require(0 <= numCharacters)
@@ -390,12 +383,8 @@ data class TrackedHeap(
                             return ""
                         }
                         append(color.code)
-                        append(plotCharacters.first)
-                        repeat(numCharacters - 2) {
-                            append(plotCharacters.default)
-                        }
-                        if (numCharacters > 1) {
-                            append(plotCharacters.last)
+                        repeat(numCharacters) {
+                            append(plotCharacter)
                         }
                         append(AnsiColor.RESET.code)
                     }.toString()
@@ -411,21 +400,13 @@ data class TrackedHeap(
                                 plotColoredBar(
                                     DiffColor.ADD.color,
                                     sizeChange,
-                                    BarPlotCharacters(
-                                        plotCharacters.alloc,
-                                        plotCharacters.start,
-                                        plotCharacters.alloc,
-                                    ),
+                                    plotCharacters.alloc,
                                 )
                             } else {
                                 plotColoredBar(
                                     DiffColor.DEL.color,
                                     -sizeChange,
-                                    BarPlotCharacters(
-                                        plotCharacters.dealloc,
-                                        plotCharacters.dealloc,
-                                        plotCharacters.start,
-                                    ),
+                                    plotCharacters.dealloc,
                                 )
                             },
                         )
@@ -516,7 +497,6 @@ data class TrackedHeap(
                         '#',
                         '+',
                         '-',
-                        '*',
                     )
                 for (rowSeqNo in operationRange step operationsPerRow) {
                     append(
