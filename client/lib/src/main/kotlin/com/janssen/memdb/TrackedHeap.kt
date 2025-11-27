@@ -71,11 +71,11 @@ data class TrackedHeap(
             throw ParseException("Invalid range spec $spec. Expected format [from]..[to]", 0)
         }
         val fromPosition =
-            position(fromToSpec[0])
+            fromPosition(fromToSpec[0])
                 ?: throw ParseException("Invalid from-position in range spec $spec", 1)
 
         val toPosition =
-            position(fromToSpec[1])
+            toPosition(fromToSpec[1])
                 ?: throw ParseException("Invalid to-position in range spec $spec", 2)
 
         return IntRange(fromPosition, toPosition)
@@ -146,7 +146,10 @@ data class TrackedHeap(
 
     fun marker(name: String) = marker(name, 0)
 
-    fun position(positionSpec: String): Int? {
+    private fun position(
+        positionSpec: String,
+        isFrom: Boolean,
+    ): Int? {
         fun parseMarkerSpec(spec: String): Pair<String, Int> {
             val splitString = spec.split(':')
             if (splitString.isEmpty()) {
@@ -162,7 +165,7 @@ data class TrackedHeap(
             return Pair<String, Int>(name, index)
         }
 
-        fun markerPosition(
+        fun markerFromPosition(
             name: String,
             index: Int,
         ): Int? {
@@ -172,10 +175,32 @@ data class TrackedHeap(
             return null
         }
 
+        fun markerToPosition(
+            name: String,
+            index: Int,
+        ): Int? =
+            markerFromPosition(name, index)?.also {
+                return max(0, it - 1)
+            }
+
+        fun markerPosition(
+            name: String,
+            index: Int,
+            isStart: Boolean,
+        ) = if (isStart) {
+            markerFromPosition(name, index)
+        } else {
+            markerToPosition(name, index)
+        }
+
         val position = positionSpec.toIntOrNull()
         val (markerName, markerIndex) = parseMarkerSpec(positionSpec)
-        return position ?: markerPosition(markerName, markerIndex)
+        return position ?: markerPosition(markerName, markerIndex, isFrom)
     }
+
+    fun fromPosition(positionSpec: String) = position(positionSpec, true)
+
+    fun toPosition(positionSpec: String) = position(positionSpec, false)
 
     override fun toString(): String {
         fun appendHeapOperation(
@@ -569,20 +594,9 @@ data class TrackedHeap(
             return builder.build()
         }
 
-        fun select(range: Range): TrackedHeap {
-            val trackedHeap = range.trackedHeap
-            val selectedHeapOperations = trackedHeap.heapOperations.slice(range.range)
-            return TrackedHeap(selectedHeapOperations, trackedHeap.markers)
-        }
-
         fun truncate(range: Range): TrackedHeap {
             val trackedHeap = range.trackedHeap
-            val rangeWithExtraSentinel = IntRange(range.range.first, range.range.last + 1)
-            val truncatedHeapOperations = trackedHeap.heapOperations.slice(rangeWithExtraSentinel).toMutableList()
-            // copy sentinel from original tracked heap, if needed
-            if (rangeWithExtraSentinel.last != trackedHeap.heapOperations.size) {
-                truncatedHeapOperations[truncatedHeapOperations.size - 1] = trackedHeap.heapOperations.last()
-            }
+            val truncatedHeapOperations = trackedHeap.heapOperations.slice(range.range).toMutableList()
             return TrackedHeap(truncatedHeapOperations, trackedHeap.markers)
         }
 
@@ -593,9 +607,15 @@ data class TrackedHeap(
         }
 
         fun fromProtobuf(update: memdb.Message.Update): TrackedHeap {
+            fun isSentinel(heapOperation: memdb.Message.HeapOperation) =
+                heapOperation.kind == Message.HeapOperation.Kind.Alloc && heapOperation.size == 0L
+
+            fun isValid(heapOperation: memdb.Message.HeapOperation) =
+                heapOperation.kind != Message.HeapOperation.Kind.UNRECOGNIZED && !isSentinel(heapOperation)
+
             val validProtoHeapOperations =
                 update.heapOperationsList.filter {
-                    it.kind != Message.HeapOperation.Kind.UNRECOGNIZED
+                    isValid(it)
                 }
             val heapOperations =
                 validProtoHeapOperations.mapIndexed { seqNo, heapOperation ->

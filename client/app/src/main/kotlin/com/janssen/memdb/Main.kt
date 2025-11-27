@@ -126,7 +126,11 @@ class MemDB(
             ArgType.String,
             shortName = "d",
             fullName = "diff",
-            description = "Diff between two positions in the tracked heap",
+            description =
+                "Compute diff between the memory state before the heap operation at from-position and " +
+                    "the memory state after the heap operation at to-position. " +
+                    "Both sequence numbers and marker names can be specified " +
+                    "[ from-position..to-position ].",
         )
         val truncateOption by parser.option(
             ArgType.String,

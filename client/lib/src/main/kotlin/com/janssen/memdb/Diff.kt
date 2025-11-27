@@ -2,7 +2,6 @@ package com.janssen.memdb
 
 import com.janssen.memdb.TrackedHeap.Range
 import java.util.Locale
-import kotlin.collections.emptyList
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -217,16 +216,15 @@ data class Diff private constructor(
             diffSpec: String,
         ): Diff {
             val diffRange = TrackedHeap.Range.fromString(trackedHeap, diffSpec)
-            if (diffRange.range.first == diffRange.range.last) {
-                return Diff(emptyList<HeapOperation>(), emptyList<HeapOperation>())
-            }
-            val selectIntRange =
-                IntRange(
-                    min(diffRange.range.first, diffRange.range.last),
-                    max(diffRange.range.first, diffRange.range.last) - 1,
+            val truncateRange =
+                TrackedHeap.Range.fromIntRange(
+                    trackedHeap,
+                    IntRange(
+                        min(diffRange.range.first, diffRange.range.last),
+                        max(diffRange.range.first, diffRange.range.last),
+                    ),
                 )
-            val selectRange = TrackedHeap.Range.fromIntRange(trackedHeap, selectIntRange)
-            val truncatedHeap = TrackedHeap.select(selectRange)
+            val truncatedHeap = TrackedHeap.truncate(truncateRange)
             val added = mutableSetOf<HeapOperation>()
             val removed = mutableSetOf<HeapOperation>()
             truncatedHeap.heapOperations.forEach {

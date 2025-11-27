@@ -187,7 +187,10 @@ class InteractiveMode(
             Command(
                 "diff",
                 "d",
-                "Diff between two before-operation memory states [from-sequence-number..to-sequence-number]",
+                "Compute diff between the memory state before the heap operation at from-position and " +
+                    "the memory state after the heap operation at to-position. " +
+                    "Both sequence numbers and marker names can be specified " +
+                    "[from-position..to-position].",
             ) {
                 runDiffCommand(it)
             },

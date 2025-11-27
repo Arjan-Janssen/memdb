@@ -9,7 +9,6 @@ class DiffTest {
             .Builder()
             .addHeapOperation(HeapOperation.Builder().alloc(5, 2))
             .addHeapOperation(HeapOperation.Builder().dealloc(5))
-            .addSentinel()
             .addMarker(Marker(0, "before"))
             .addMarker(Marker(2, "after"))
             .build()
@@ -19,31 +18,30 @@ class DiffTest {
             .Builder()
             .addHeapOperation(HeapOperation.Builder().alloc(1, 2))
             .addHeapOperation(HeapOperation.Builder().dealloc(2))
-            .addSentinel()
             .build()
 
     @Test
-    fun `compute diff with alloc operation`() {
+    fun `compute diff with alloc`() {
         val trackedHeap = createMismatchedAllocAndDeallocScenario()
-        val diff = Diff.compute(trackedHeap, "0..1")
+        val diff = Diff.compute(trackedHeap, "0..0")
         assertEquals(1, diff.added.size)
         assertEquals(trackedHeap.heapOperations.first(), diff.added.first())
         assertEquals(0, diff.removed.size)
     }
 
     @Test
-    fun `compute diff with dealloc operation`() {
+    fun `compute diff with dealloc`() {
         val trackedHeap = createMismatchedAllocAndDeallocScenario()
-        val diff = Diff.compute(trackedHeap, "1..2")
+        val diff = Diff.compute(trackedHeap, "1..1")
         assertEquals(0, diff.added.size)
         assertEquals(1, diff.removed.size)
         assertEquals(trackedHeap.heapOperations[1], diff.removed.first())
     }
 
     @Test
-    fun `compute diff with mismatched alloc and dealloc operation`() {
+    fun `compute diff with mismatched alloc-dealloc pair`() {
         val trackedHeap = createMismatchedAllocAndDeallocScenario()
-        val diff = Diff.compute(trackedHeap, "0..2")
+        val diff = Diff.compute(trackedHeap, "0..1")
         assertEquals(1, diff.added.size)
         assertEquals(trackedHeap.heapOperations.first(), diff.added.first())
         assertEquals(1, diff.removed.size)
@@ -51,9 +49,9 @@ class DiffTest {
     }
 
     @Test
-    fun `compute diff with matched alloc and dealloc operation`() {
+    fun `compute diff with matched alloc-dealloc pair`() {
         val trackedHeap = createMatchedAllocAndDeallocScenario()
-        val diff = Diff.compute(trackedHeap, "0..2")
+        val diff = Diff.compute(trackedHeap, "0..1")
         assertEquals(0, diff.added.size)
         assertEquals(0, diff.removed.size)
     }
@@ -67,27 +65,17 @@ class DiffTest {
     }
 
     @Test
-    fun `compute reversed diff with dealloc operation`() {
+    fun `compute reversed diff with mismatched alloc-dealloc pair`() {
         val trackedHeap = createMismatchedAllocAndDeallocScenario()
         val diff = Diff.compute(trackedHeap, "1..0")
-        assertEquals(0, diff.added.size)
-        assertEquals(1, diff.removed.size)
-        assertEquals(trackedHeap.heapOperations.first(), diff.removed.first())
-    }
-
-    @Test
-    fun `compute reversed diff with alloc operation`() {
-        val trackedHeap = createMismatchedAllocAndDeallocScenario()
-        val diff = Diff.compute(trackedHeap, "2..1")
         assertEquals(1, diff.added.size)
-        assertEquals(trackedHeap.heapOperations[1], diff.added.first())
-        assertEquals(0, diff.removed.size)
+        assertEquals(1, diff.removed.size)
     }
 
     @Test
-    fun `compute reversed diff with matched alloc and dealloc operation`() {
+    fun `compute reversed diff with matched alloc-dealloc pair`() {
         val trackedHeap = createMatchedAllocAndDeallocScenario()
-        val diff = Diff.compute(trackedHeap, "2..0")
+        val diff = Diff.compute(trackedHeap, "1..0")
         assertEquals(0, diff.added.size)
         assertEquals(0, diff.removed.size)
     }
