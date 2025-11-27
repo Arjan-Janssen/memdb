@@ -392,17 +392,19 @@ data class TrackedHeap(
                         return ""
                     }
 
-                    val builder = StringBuilder()
-                    builder.append(color.code)
-                    builder.append(plotCharacters.first)
+                    val builder =
+                        StringBuilder()
+                            .append(color.code)
+                            .append(plotCharacters.first)
                     repeat(numCharacters - 2) {
                         builder.append(plotCharacters.default)
                     }
                     if (numCharacters > 1) {
                         builder.append(plotCharacters.last)
                     }
-                    builder.append(AnsiColor.RESET.code)
-                    return builder.toString()
+                    return builder
+                        .append(AnsiColor.RESET.code)
+                        .toString()
                 }
 
                 val builder = StringBuilder()
@@ -411,30 +413,30 @@ data class TrackedHeap(
                 }
 
                 val sizeChange = rowPlotSizes.after - rowPlotSizes.before
-                builder.append(
-                    if (0 < sizeChange) {
-                        plotColoredBar(
-                            DiffColor.ADD.color,
-                            sizeChange,
-                            BarPlotCharacters(
-                                plotCharacters.alloc,
-                                plotCharacters.start,
-                                plotCharacters.alloc,
-                            ),
-                        )
-                    } else {
-                        plotColoredBar(
-                            DiffColor.DEL.color,
-                            -sizeChange,
-                            BarPlotCharacters(
-                                plotCharacters.dealloc,
-                                plotCharacters.dealloc,
-                                plotCharacters.start,
-                            ),
-                        )
-                    },
-                )
-                return builder.toString()
+                return builder
+                    .append(
+                        if (0 < sizeChange) {
+                            plotColoredBar(
+                                DiffColor.ADD.color,
+                                sizeChange,
+                                BarPlotCharacters(
+                                    plotCharacters.alloc,
+                                    plotCharacters.start,
+                                    plotCharacters.alloc,
+                                ),
+                            )
+                        } else {
+                            plotColoredBar(
+                                DiffColor.DEL.color,
+                                -sizeChange,
+                                BarPlotCharacters(
+                                    plotCharacters.dealloc,
+                                    plotCharacters.dealloc,
+                                    plotCharacters.start,
+                                ),
+                            )
+                        },
+                    ).toString()
             }
 
             val builder = StringBuilder()
@@ -442,21 +444,19 @@ data class TrackedHeap(
                 builder.appendLine(plotMarker(it, columns))
             }
 
-            builder.append(
-                String.format(
-                    Locale.getDefault(),
-                    "%16d: ",
-                    rowOperations.seqNo,
-                ),
-            )
-            builder.append(
-                plotHeapOperationBar(
-                    rowPlotSizes,
-                    plotCharacters,
-                ),
-            )
-
-            builder.appendLine()
+            builder
+                .append(
+                    String.format(
+                        Locale.getDefault(),
+                        "%16d: ",
+                        rowOperations.seqNo,
+                    ),
+                ).append(
+                    plotHeapOperationBar(
+                        rowPlotSizes,
+                        plotCharacters,
+                    ),
+                ).appendLine()
 
             // plot markers associated with skipped heap operations
             val markerEndSeqNo = min(rowOperations.seqNo + rowOperations.count - 1, rowOperations.plotRange.last)
