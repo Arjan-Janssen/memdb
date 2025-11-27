@@ -260,9 +260,9 @@ class MemDB(
         trackedHeap: TrackedHeap,
         rangeSpec: String,
     ) {
-        val diffSpec = TrackedHeap.Range.fromString(trackedHeap, rangeSpec)
-        println("Truncating heap to $diffSpec...")
-        this.trackedHeap = trackedHeap.select(diffSpec)
+        val range = TrackedHeap.Range.fromString(trackedHeap, rangeSpec)
+        println("Selecting heap operations $rangeSpec...")
+        this.trackedHeap = trackedHeap.select(range)
     }
 
     fun doPrint(

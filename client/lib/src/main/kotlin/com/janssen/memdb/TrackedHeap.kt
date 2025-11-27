@@ -202,59 +202,57 @@ data class TrackedHeap(
 
     fun toPosition(positionSpec: String) = position(positionSpec, false)
 
-    override fun toString(): String {
-        fun appendHeapOperation(
-            builder: StringBuilder,
-            heapOperation: HeapOperation,
-            cumulativeSize: Int,
-        ) = builder.apply {
-            if (!heapOperation.sentinel()) {
-                append("\n  $heapOperation")
-                append(" -> $cumulativeSize")
-            }
-        }
+    private fun adjustSize(
+        cumulativeSize: Int,
+        heapOperation: HeapOperation,
+    ) = if (heapOperation.kind == HeapOperationKind.Alloc) {
+        cumulativeSize + heapOperation.size
+    } else {
+        cumulativeSize - heapOperation.size
+    }
 
-        fun adjustSize(
-            cumulativeSize: Int,
-            heapOperation: HeapOperation,
-        ) = if (heapOperation.kind == HeapOperationKind.Alloc) {
-            cumulativeSize + heapOperation.size
-        } else {
-            cumulativeSize - heapOperation.size
-        }
-
-        return StringBuilder()
+    private fun heapOperationsToString(heapOperations: List<HeapOperation>) =
+        StringBuilder()
             .apply {
-                if (heapOperations.isNotEmpty()) {
-                    append("heap operations:")
-                    var cumulativeSize = 0
-                    heapOperations.forEach {
-                        cumulativeSize = adjustSize(cumulativeSize, it)
-                        appendHeapOperation(this, it, cumulativeSize)
-                    }
-                }
-
-                if (markers.isNotEmpty()) {
-                    append("\n\nmarkers:")
-                    markers.forEach {
+                append("heap operations:")
+                var cumulativeSize = 0
+                heapOperations.forEach {
+                    cumulativeSize = adjustSize(cumulativeSize, it)
+                    if (!it.sentinel()) {
                         append("\n  $it")
+                        append(" -> $cumulativeSize")
                     }
                 }
             }.toString()
-    }
 
-    data class RowOperations(
+    private fun markersToString(markers: List<Marker>) =
+        StringBuilder()
+            .apply {
+                append("\n\nmarkers:")
+                markers.forEach {
+                    append("\n  $it")
+                }
+            }.toString()
+
+    override fun toString() =
+        StringBuilder()
+            .apply {
+                if (heapOperations.isNotEmpty()) {
+                    append(heapOperationsToString(heapOperations))
+                }
+
+                if (markers.isNotEmpty()) {
+                    append(markersToString(markers))
+                }
+            }.toString()
+
+    private data class RowOperations(
         val seqNo: Int,
         val count: Int,
         val plotRange: IntRange,
     )
 
-    data class PlotDimensions(
-        val columns: Int,
-        val rows: Int,
-    )
-
-    data class HeapSizeChange(
+    private data class HeapSizeChange(
         val before: Int,
         val after: Int,
     )
@@ -263,7 +261,7 @@ data class TrackedHeap(
     // executed and, for deallocations, whether it matches its address with a previous alloc.
     // Unmatched deallocations are ignored in the cumulative heap size.
     // Matches are returned in the matches list.
-    data class HeapGraph(
+    private data class HeapGraph(
         val sizeChanges: List<HeapSizeChange>,
     ) {
         companion object {
@@ -290,237 +288,242 @@ data class TrackedHeap(
         }
     }
 
-    @Suppress("CyclomaticComplexMethod")
+    private fun plotGraphHeading(
+        columns: Int,
+        maxHeapSize: Int,
+    ) = StringBuilder()
+        .apply {
+            require(MIN_GRAPH_COLUMNS <= columns)
+            require(0 <= maxHeapSize)
+
+            append(String.format(Locale.getDefault(), "%16s->", "allocated"))
+            repeat(columns) {
+                append(' ')
+            }
+            append("<-")
+            append(maxHeapSize.toString())
+        }.toString()
+
+    private data class RowPlotSizes(
+        val before: Int,
+        val after: Int,
+    )
+
+    private data class RowPlotCharacters(
+        val default: Char,
+        val alloc: Char,
+        val dealloc: Char,
+    )
+
+    private fun plotGraphColoredBar(
+        color: AnsiColor,
+        numCharacters: Int,
+        plotCharacter: Char,
+    ) = StringBuilder()
+        .apply {
+            require(0 <= numCharacters)
+
+            if (numCharacters == 0) {
+                return ""
+            }
+            append(color.code)
+            repeat(numCharacters) {
+                append(plotCharacter)
+            }
+            append(AnsiColor.RESET.code)
+        }.toString()
+
+    private fun plotGraphHeapOperationBar(
+        rowPlotSizes: RowPlotSizes,
+        plotCharacters: RowPlotCharacters,
+    ): String {
+        val sizeChange = rowPlotSizes.after - rowPlotSizes.before
+        return StringBuilder()
+            .apply {
+                repeat(min(rowPlotSizes.before, rowPlotSizes.after)) {
+                    append(plotCharacters.default)
+                }
+                append(
+                    if (0 < sizeChange) {
+                        plotGraphColoredBar(
+                            DiffColor.ADD.color,
+                            sizeChange,
+                            plotCharacters.alloc,
+                        )
+                    } else {
+                        plotGraphColoredBar(
+                            DiffColor.DEL.color,
+                            -sizeChange,
+                            plotCharacters.dealloc,
+                        )
+                    },
+                )
+            }.toString()
+    }
+
+    private fun mangleMarkerName(
+        name: String,
+        index: Int,
+    ) = if (index == 0) {
+        String.format(
+            Locale.getDefault(),
+            "%s",
+            name,
+        )
+    } else {
+        String.format(
+            Locale.getDefault(),
+            "%s:%d",
+            name,
+            index,
+        )
+    }
+
+    private fun plotGraphMarker(
+        marker: Marker,
+        columns: Int,
+    ) = StringBuilder()
+        .apply {
+            require(MIN_GRAPH_COLUMNS <= columns)
+
+            append(
+                String.format(
+                    Locale.getDefault(),
+                    "%16s: ",
+                    mangleMarkerName(marker.name, marker.index),
+                ),
+            )
+
+            repeat(columns) {
+                append('-')
+            }
+        }.toString()
+
+    private fun plotGraphRow(
+        rowOperations: RowOperations,
+        columns: Int,
+        rowPlotSizes: RowPlotSizes,
+        plotCharacters: RowPlotCharacters,
+    ) = StringBuilder()
+        .apply {
+            markers(rowOperations.seqNo).forEach {
+                appendLine(plotGraphMarker(it, columns))
+            }
+            append(
+                String.format(
+                    Locale.getDefault(),
+                    "%16d: ",
+                    rowOperations.seqNo,
+                ),
+            )
+            append(
+                plotGraphHeapOperationBar(
+                    rowPlotSizes,
+                    plotCharacters,
+                ),
+            )
+            appendLine()
+            // plot markers associated with skipped heap operations
+            val markerEndSeqNo =
+                min(
+                    rowOperations.seqNo + rowOperations.count - 1,
+                    rowOperations.plotRange.last,
+                )
+            val markerRange = rowOperations.seqNo + 1..markerEndSeqNo
+            for (skippedSeqNo in markerRange) {
+                markers(skippedSeqNo).forEach {
+                    appendLine(plotGraphMarker(it, columns))
+                }
+            }
+        }.toString()
+
+    private fun numPlotCharacters(
+        columns: Int,
+        size: Int,
+        maxHeapSize: Int,
+    ) = if (maxHeapSize > 0) ceil((size * columns) / maxHeapSize.toDouble()).toInt() else 0
+
+    private fun numPlotCharacters(
+        columns: Int,
+        sizeChange: HeapSizeChange,
+        maxHeapSize: Int,
+    ) = RowPlotSizes(
+        numPlotCharacters(columns, sizeChange.before, maxHeapSize),
+        numPlotCharacters(columns, sizeChange.after, maxHeapSize),
+    )
+
+    private fun maxHeapSize(
+        operationRange: IntRange,
+        sizeChanges: List<HeapSizeChange>,
+    ): Int {
+        var maxHeapSize = 0
+        sizeChanges.slice(operationRange).map {
+            maxHeapSize = max(maxHeapSize, it.after)
+        }
+        return maxHeapSize
+    }
+
+    data class PlotDimensions(
+        val columns: Int,
+        val rows: Int,
+    )
+
     fun plotGraph(
         operationRange: IntRange,
         dimensions: PlotDimensions,
-    ): String {
-        fun plotHeading(
-            columns: Int,
-            maxHeapSize: Int,
-        ) = StringBuilder()
-            .apply {
-                require(MIN_GRAPH_COLUMNS <= columns)
-                require(0 <= maxHeapSize)
+    ) = StringBuilder()
+        .apply {
+            if (heapOperations.isEmpty()) {
+                append(NO_HEAP_OPERATIONS)
+                return toString()
+            }
 
-                append(String.format(Locale.getDefault(), "%16s->", "allocated"))
-                repeat(columns) {
-                    append(' ')
-                }
-                append("<-")
-                append(maxHeapSize.toString())
-            }.toString()
+            require(operationRange.first >= 0)
+            require(operationRange.first <= operationRange.last)
+            require(dimensions.columns >= MIN_GRAPH_COLUMNS)
+            require(dimensions.rows >= MIN_GRAPH_ROWS)
 
-        fun plotMarker(
-            marker: Marker,
-            columns: Int,
-        ) = StringBuilder()
-            .apply {
-                fun mangleMarkerName(
-                    name: String,
-                    index: Int,
-                ) = if (marker.index == 0) {
-                    String.format(
-                        Locale.getDefault(),
-                        "%s",
-                        marker.name,
-                    )
-                } else {
-                    String.format(
-                        Locale.getDefault(),
-                        "%s:%d",
-                        marker.name,
-                        marker.index,
-                    )
-                }
+            val heapGraph = HeapGraph.compute(heapOperations)
+            val maxHeapSize = maxHeapSize(operationRange, heapGraph.sizeChanges)
+            require(0 <= maxHeapSize)
+            appendLine(plotGraphHeading(dimensions.columns, maxHeapSize))
 
-                require(MIN_GRAPH_COLUMNS <= columns)
-
+            val numOperations = 1 + (operationRange.last - operationRange.first)
+            val clampedRows = if (numOperations < dimensions.rows) numOperations else dimensions.rows
+            if (clampedRows == 0) {
+                return toString()
+            }
+            val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
+            val plotCharacters =
+                RowPlotCharacters(
+                    '#',
+                    '+',
+                    '-',
+                )
+            for (rowSeqNo in operationRange step operationsPerRow) {
                 append(
-                    String.format(
-                        Locale.getDefault(),
-                        "%16s: ",
-                        mangleMarkerName(marker.name, marker.index),
+                    plotGraphRow(
+                        RowOperations(
+                            rowSeqNo,
+                            operationsPerRow,
+                            operationRange,
+                        ),
+                        dimensions.columns,
+                        numPlotCharacters(
+                            dimensions.columns,
+                            heapGraph.sizeChanges[rowSeqNo],
+                            maxHeapSize,
+                        ),
+                        plotCharacters,
                     ),
                 )
-
-                repeat(columns) {
-                    append('-')
-                }
-            }.toString()
-
-        data class RowPlotSizes(
-            val before: Int,
-            val after: Int,
-        )
-
-        data class RowPlotCharacters(
-            val default: Char,
-            val alloc: Char,
-            val dealloc: Char,
-        )
-
-        @Suppress("LongMethod")
-        fun plotRow(
-            rowOperations: RowOperations,
-            columns: Int,
-            rowPlotSizes: RowPlotSizes,
-            plotCharacters: RowPlotCharacters,
-        ): String {
-            fun plotHeapOperationBar(
-                rowPlotSizes: RowPlotSizes,
-                plotCharacters: RowPlotCharacters,
-            ): String {
-                fun plotColoredBar(
-                    color: AnsiColor,
-                    numCharacters: Int,
-                    plotCharacter: Char,
-                ) = StringBuilder()
-                    .apply {
-                        require(0 <= numCharacters)
-
-                        if (numCharacters == 0) {
-                            return ""
-                        }
-                        append(color.code)
-                        repeat(numCharacters) {
-                            append(plotCharacter)
-                        }
-                        append(AnsiColor.RESET.code)
-                    }.toString()
-
-                val sizeChange = rowPlotSizes.after - rowPlotSizes.before
-                return StringBuilder()
-                    .apply {
-                        repeat(min(rowPlotSizes.before, rowPlotSizes.after)) {
-                            append(plotCharacters.default)
-                        }
-                        append(
-                            if (0 < sizeChange) {
-                                plotColoredBar(
-                                    DiffColor.ADD.color,
-                                    sizeChange,
-                                    plotCharacters.alloc,
-                                )
-                            } else {
-                                plotColoredBar(
-                                    DiffColor.DEL.color,
-                                    -sizeChange,
-                                    plotCharacters.dealloc,
-                                )
-                            },
-                        )
-                    }.toString()
             }
 
-            return StringBuilder()
-                .apply {
-                    markers(rowOperations.seqNo).forEach {
-                        appendLine(plotMarker(it, columns))
-                    }
-                    append(
-                        String.format(
-                            Locale.getDefault(),
-                            "%16d: ",
-                            rowOperations.seqNo,
-                        ),
-                    )
-                    append(
-                        plotHeapOperationBar(
-                            rowPlotSizes,
-                            plotCharacters,
-                        ),
-                    )
-                    appendLine()
-                    // plot markers associated with skipped heap operations
-                    val markerEndSeqNo =
-                        min(
-                            rowOperations.seqNo + rowOperations.count - 1,
-                            rowOperations.plotRange.last,
-                        )
-                    val markerRange = rowOperations.seqNo + 1..markerEndSeqNo
-                    for (skippedSeqNo in markerRange) {
-                        markers(skippedSeqNo).forEach {
-                            appendLine(plotMarker(it, columns))
-                        }
-                    }
-                }.toString()
-        }
-
-        fun numPlotCharacters(
-            size: Int,
-            maxHeapSize: Int,
-        ) = if (maxHeapSize > 0) ceil((size * dimensions.columns) / maxHeapSize.toDouble()).toInt() else 0
-
-        fun numPlotCharacters(
-            sizeChange: HeapSizeChange,
-            maxHeapSize: Int,
-        ) = RowPlotSizes(
-            numPlotCharacters(sizeChange.before, maxHeapSize),
-            numPlotCharacters(sizeChange.after, maxHeapSize),
-        )
-
-        fun maxHeapSize(sizeChanges: List<HeapSizeChange>): Int {
-            var maxHeapSize = 0
-            sizeChanges.slice(operationRange).map {
-                maxHeapSize = max(maxHeapSize, it.after)
+            // print potential terminating markers
+            markers(operationRange.last + 1).forEach {
+                appendLine(plotGraphMarker(it, dimensions.columns))
             }
-            return maxHeapSize
-        }
-
-        return StringBuilder()
-            .apply {
-                if (heapOperations.isEmpty()) {
-                    append(NO_HEAP_OPERATIONS)
-                    return toString()
-                }
-
-                require(operationRange.first >= 0)
-                require(operationRange.first <= operationRange.last)
-                require(dimensions.columns >= MIN_GRAPH_COLUMNS)
-                require(dimensions.rows >= MIN_GRAPH_ROWS)
-
-                val heapGraph = HeapGraph.compute(heapOperations)
-                val maxHeapSize = maxHeapSize(heapGraph.sizeChanges)
-                require(0 <= maxHeapSize)
-                appendLine(plotHeading(dimensions.columns, maxHeapSize))
-
-                val numOperations = 1 + (operationRange.last - operationRange.first)
-                val clampedRows = if (numOperations < dimensions.rows) numOperations else dimensions.rows
-                if (clampedRows == 0) {
-                    return toString()
-                }
-                val operationsPerRow = ceil(numOperations.toDouble() / clampedRows).toInt()
-                val plotCharacters =
-                    RowPlotCharacters(
-                        '#',
-                        '+',
-                        '-',
-                    )
-                for (rowSeqNo in operationRange step operationsPerRow) {
-                    append(
-                        plotRow(
-                            RowOperations(
-                                rowSeqNo,
-                                operationsPerRow,
-                                operationRange,
-                            ),
-                            dimensions.columns,
-                            numPlotCharacters(
-                                heapGraph.sizeChanges[rowSeqNo],
-                                maxHeapSize,
-                            ),
-                            plotCharacters,
-                        ),
-                    )
-                }
-
-                // print potential terminating markers
-                markers(operationRange.last + 1).forEach {
-                    appendLine(plotMarker(it, dimensions.columns))
-                }
-            }.toString()
-    }
+        }.toString()
 
     fun saveToFile(filePath: String) = toProtobuf().writeTo(File(filePath).outputStream())
 
