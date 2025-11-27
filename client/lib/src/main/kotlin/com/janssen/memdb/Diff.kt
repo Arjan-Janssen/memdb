@@ -20,7 +20,6 @@ data class Diff private constructor(
                 if (added.isEmpty() && removed.isEmpty()) {
                     append(NO_DIFF)
                 }
-            }.apply {
                 if (added.isNotEmpty()) {
                     append(DiffColor.ADD)
                     added.forEach {
@@ -29,7 +28,6 @@ data class Diff private constructor(
                     }
                     append(DiffColor.CLR)
                 }
-
                 if (removed.isNotEmpty()) {
                     append(DiffColor.DEL)
                     removed.forEach {
@@ -38,7 +36,6 @@ data class Diff private constructor(
                     }
                     append(DiffColor.CLR)
                 }
-
                 val addedBytes = added.sumOf { it.size }
                 val removedBytes = removed.sumOf { it.size }
                 append("${DiffColor.ADD.color.code}+$addedBytes${DiffColor.CLR.color.code} bytes, ")
