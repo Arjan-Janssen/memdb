@@ -42,6 +42,12 @@ data class Diff private constructor(
             }
             builder.append(DiffColor.CLR)
         }
+
+        val addedBytes = added.sumOf { it.size }
+        val removedBytes = removed.sumOf { it.size }
+        builder
+            .append("${DiffColor.ADD.color.code}+$addedBytes${DiffColor.CLR.color.code} bytes, ")
+            .append("${DiffColor.DEL.color.code}-$removedBytes${DiffColor.CLR.color.code} bytes")
         return builder.toString()
     }
 

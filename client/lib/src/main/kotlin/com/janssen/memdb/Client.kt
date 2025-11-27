@@ -21,7 +21,7 @@ class Client {
         if (message.heapOperationsList.isNotEmpty()) {
             val lastOperation = message.heapOperationsList.last()
             if (isSentinel(lastOperation)) {
-                println("Sentinel received. Closing connection")
+                println("Last heap operation received. Closing connection")
                 socket.close()
             }
         }
@@ -45,6 +45,8 @@ class Client {
             }
         }
 
-        return TrackedHeap.concatenate(trackedHeaps)
+        return TrackedHeap
+            .concatenate(trackedHeaps)
+            .withoutUnmatchedDeallocs()
     }
 }

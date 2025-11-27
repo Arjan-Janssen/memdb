@@ -17,7 +17,6 @@ enum class DiffColor(
 ) {
     ADD(AnsiColor.GREEN),
     DEL(AnsiColor.RED),
-    MISMATCH(AnsiColor.YELLOW),
     CLR(AnsiColor.RESET),
     ;
 

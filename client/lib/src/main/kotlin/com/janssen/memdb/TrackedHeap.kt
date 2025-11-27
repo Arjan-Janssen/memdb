@@ -266,29 +266,18 @@ data class TrackedHeap(
     // Matches are returned in the matches list.
     data class HeapGraph(
         val sizeChanges: List<HeapSizeChange>,
-        val matchesAlloc: List<Boolean>,
     ) {
         companion object {
             fun compute(heapOperations: List<HeapOperation>): HeapGraph {
                 val sizeChanges = mutableListOf<HeapSizeChange>()
-                val matches = mutableListOf<Boolean>()
                 var currentHeapSize = 0
-                var sizeChange = 0
-                val knownAllocs = mutableMapOf<Int, HeapOperation>()
                 heapOperations.forEach { op ->
-                    if (op.kind == HeapOperationKind.Alloc) {
-                        sizeChange = op.size
-                        knownAllocs[op.address] = op
-                        // allocations always match
-                        matches.add(true)
-                    } else {
-                        val alloc = knownAllocs[op.address]
-                        alloc?.let { alloc ->
-                            sizeChange = -alloc.size
-                            knownAllocs.remove(alloc.address)
+                    val sizeChange =
+                        if (op.kind == HeapOperationKind.Alloc) {
+                            op.size
+                        } else {
+                            -op.size
                         }
-                        matches.add(alloc != null)
-                    }
                     sizeChanges.add(
                         HeapSizeChange(
                             currentHeapSize,
@@ -297,7 +286,7 @@ data class TrackedHeap(
                     )
                     currentHeapSize += sizeChange
                 }
-                return HeapGraph(sizeChanges, matches)
+                return HeapGraph(sizeChanges)
             }
         }
     }
@@ -381,7 +370,6 @@ data class TrackedHeap(
             columns: Int,
             rowPlotSizes: RowPlotSizes,
             plotCharacters: RowPlotCharacters,
-            matchesAlloc: Boolean,
         ): String {
             fun plotHeapOperationBar(
                 rowPlotSizes: RowPlotSizes,
@@ -454,9 +442,6 @@ data class TrackedHeap(
                 builder.appendLine(plotMarker(it, columns))
             }
 
-            if (!matchesAlloc) {
-                builder.append(DiffColor.MISMATCH.color.code)
-            }
             builder.append(
                 String.format(
                     Locale.getDefault(),
@@ -471,9 +456,6 @@ data class TrackedHeap(
                 ),
             )
 
-            if (!matchesAlloc) {
-                builder.append(AnsiColor.RESET.code)
-            }
             builder.appendLine()
 
             // plot markers associated with skipped heap operations
@@ -541,7 +523,6 @@ data class TrackedHeap(
                 '*',
             )
         for (rowSeqNo in operationRange step operationsPerRow) {
-            val matchesAlloc = heapGraph.matchesAlloc[rowSeqNo]
             builder.append(
                 plotRow(
                     RowOperations(
@@ -555,7 +536,6 @@ data class TrackedHeap(
                         maxHeapSize,
                     ),
                     plotCharacters,
-                    matchesAlloc,
                 ),
             )
         }
@@ -584,15 +564,38 @@ data class TrackedHeap(
         return builder.build()
     }
 
-    companion object {
-        fun concatenate(trackedHeaps: List<TrackedHeap>): TrackedHeap {
-            val builder = Builder()
-            trackedHeaps.forEach {
-                builder.addHeapOperations(it.heapOperations)
-                builder.addMarkers(it.markers)
+    fun withoutUnmatchedDeallocs(): TrackedHeap {
+        val allocsByAddress = mutableMapOf<Int, HeapOperation>()
+        val validHeapOperations = mutableListOf<HeapOperation>()
+        heapOperations.forEachIndexed { index, heapOperation ->
+            when (heapOperation.kind) {
+                HeapOperationKind.Alloc -> {
+                    allocsByAddress[heapOperation.address] = heapOperation
+                    validHeapOperations.add(heapOperation)
+                }
+
+                HeapOperationKind.Dealloc -> {
+                    val matchingAlloc = allocsByAddress[heapOperation.address]
+                    if (matchingAlloc != null) {
+                        validHeapOperations.add(heapOperation.asMatched(matchingAlloc))
+                        allocsByAddress.remove(matchingAlloc.address)
+                    }
+                }
             }
-            return builder.build()
         }
+        return TrackedHeap(validHeapOperations, markers)
+    }
+
+    companion object {
+        fun concatenate(trackedHeaps: List<TrackedHeap>): TrackedHeap =
+            Builder()
+                .addHeapOperations(
+                    trackedHeaps
+                        .map {
+                            it.heapOperations
+                        }.flatten(),
+                ).addMarkers(trackedHeaps.map { it.markers }.flatten())
+                .build()
 
         fun truncate(range: Range): TrackedHeap {
             val trackedHeap = range.trackedHeap

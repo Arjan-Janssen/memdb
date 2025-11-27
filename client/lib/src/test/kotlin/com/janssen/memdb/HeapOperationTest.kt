@@ -129,11 +129,12 @@ expected backtrace]"""
                 .build()
 
         val expectedStringBacktrace =
-            "dealloc[seq no: 20, duration: 200ms, address: 00000002, thread id: 4, backtrace:\nexpected backtrace]"
+            "dealloc[seq no: 20, duration: 200ms, address: 00000002, size: 0, thread id: 4, " +
+                "backtrace:\nexpected backtrace]"
         assertEquals(expectedStringBacktrace, dealloc.toString(true))
 
         val expectedStringNoBacktrace =
-            "dealloc[seq no: 20, duration: 200ms, address: 00000002, thread id: 4, backtrace: <hidden>]"
+            "dealloc[seq no: 20, duration: 200ms, address: 00000002, size: 0, thread id: 4, backtrace: <hidden>]"
         assertEquals(expectedStringNoBacktrace, dealloc.toString(false))
     }
 }

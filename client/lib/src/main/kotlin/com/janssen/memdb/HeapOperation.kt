@@ -92,8 +92,7 @@ data class HeapOperation(
                     "address: %s, ",
                     address.toHexString(),
                 ),
-            ).append(if (kind == HeapOperationKind.Alloc) "size: $size, " else "")
-            .append("thread id: $threadId, ")
+            ).append("size: $size, thread id: $threadId, ")
             .append("backtrace:${if (showBacktrace) "\n" + backtrace else " <hidden>"}")
             .append("]")
             .toString()
@@ -141,6 +140,17 @@ data class HeapOperation(
                 .setBacktrace(heapOperation.backtrace)
                 .build()
     }
+
+    fun asMatched(alloc: HeapOperation) =
+        HeapOperation(
+            seqNo,
+            kind,
+            durationSinceServerStart,
+            address,
+            alloc.size,
+            threadId,
+            backtrace,
+        )
 
     fun sentinel() = kind == HeapOperationKind.Alloc && size == 0
 }

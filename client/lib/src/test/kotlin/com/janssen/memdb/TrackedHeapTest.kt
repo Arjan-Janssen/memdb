@@ -474,7 +474,7 @@ class TrackedHeapTest {
         val expectedString =
 """heap operations:
   alloc[seq no: 0, duration: 200ms, address: 00000002, size: 4, thread id: 5, backtrace: <hidden>] -> 4
-  dealloc[seq no: 1, duration: 400ms, address: 00000002, thread id: 6, backtrace: <hidden>] -> 0
+  dealloc[seq no: 1, duration: 400ms, address: 00000002, size: 4, thread id: 6, backtrace: <hidden>] -> 0
 
 markers:
   marker[name: begin, index: 0, seq-no: 0]
@@ -529,11 +529,11 @@ markers:
     }
 
     @Test
-    fun `plotGraph with mismatching dealloc colors the memory bar`() {
+    fun `plotGraph with mismatching dealloc`() {
         val trackedHeap = createMismatchedDealloc()
         val expectedGraph =
             """       allocated->          <-0
-${DiffColor.MISMATCH.color.code}               0: ${AnsiColor.RESET.code}
+               0: 
 """
         assertEquals(
             expectedGraph,
