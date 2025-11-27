@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Basic integration test to verify that server waits for the client to connect and terminates
+# Basic end-to-end test to verify that server waits for the client to connect and terminates
 # after a connection is established.
 
 # build and run server
@@ -10,12 +10,7 @@ echo "Running server:"
 ./target/debug/examples/grow_vec &
 popd
 
-# Wait until the server is up on the default port
-{
-  while ! echo -n > /dev/tcp/localhost/8989; do
-    sleep 1s
-  done
-} 2>/dev/null
+sleep 1s
 
 normal=$(tput sgr0)
 green=$(tput setaf 2)
