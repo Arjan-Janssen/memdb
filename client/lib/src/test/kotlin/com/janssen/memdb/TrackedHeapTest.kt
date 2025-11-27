@@ -496,6 +496,18 @@ markers:
     }
 
     @Test
+    fun `plotGraph without heap operations`() {
+        val trackedHeap = TrackedHeap(emptyList<HeapOperation>(), emptyList<Marker>())
+        assertEquals(
+            NO_HEAP_OPERATIONS,
+            trackedHeap.plotGraph(
+                IntRange(0, 0),
+                TrackedHeap.PlotDimensions(DEFAULT_TEST_COLUMNS, DEFAULT_TEST_ROWS),
+            ),
+        )
+    }
+
+    @Test
     fun `plotGraph with full range`() {
         val trackedHeap = createMatchingAllocDeallocPair()
         val expectedGraph =

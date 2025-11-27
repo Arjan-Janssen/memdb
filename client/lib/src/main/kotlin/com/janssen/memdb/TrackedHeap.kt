@@ -468,23 +468,22 @@ data class TrackedHeap(
             return maxHeapSize
         }
 
-        require(operationRange.first >= 0)
-        require(operationRange.first <= operationRange.last)
-        require(operationRange.last < heapOperations.size)
-        require(dimensions.columns >= MIN_GRAPH_COLUMNS)
-        require(dimensions.rows >= MIN_GRAPH_ROWS)
-
-        val heapGraph = HeapGraph.compute(heapOperations)
-        val maxHeapSize = maxHeapSize(heapGraph.sizeChanges)
-        require(0 <= maxHeapSize)
-
         return StringBuilder()
             .apply {
-                appendLine(plotHeading(dimensions.columns, maxHeapSize))
                 if (heapOperations.isEmpty()) {
                     append(NO_HEAP_OPERATIONS)
                     return toString()
                 }
+
+                require(operationRange.first >= 0)
+                require(operationRange.first <= operationRange.last)
+                require(dimensions.columns >= MIN_GRAPH_COLUMNS)
+                require(dimensions.rows >= MIN_GRAPH_ROWS)
+
+                val heapGraph = HeapGraph.compute(heapOperations)
+                val maxHeapSize = maxHeapSize(heapGraph.sizeChanges)
+                require(0 <= maxHeapSize)
+                appendLine(plotHeading(dimensions.columns, maxHeapSize))
 
                 val numOperations = 1 + (operationRange.last - operationRange.first)
                 val clampedRows = if (numOperations < dimensions.rows) numOperations else dimensions.rows
