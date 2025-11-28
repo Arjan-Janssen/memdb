@@ -112,6 +112,11 @@ data class TrackedHeap internal constructor(
             }.toString()
 
     /**
+     * Creates a range spec string representing the full range of the tracked heap.
+     */
+    fun wholeRangeSpec() = "0..${heapOperations.size - 1}"
+
+    /**
      * Saves the tracked heap to a file.
      *
      * @param filePath A relative or absolute path to the file where the tracked heap will be saved. Existing files
@@ -158,12 +163,6 @@ data class TrackedHeap internal constructor(
                 val range = trackedHeap.createIntRange(spec)
                 return fromIntRange(trackedHeap, range)
             }
-
-            /**
-             * Creates a range spec string representing the full range of the specified tracked heap.
-             * @param trackedHeap The tracked heap for which the full range should be returned.
-             */
-            fun wholeRangeSpec(trackedHeap: TrackedHeap) = "0..${trackedHeap.heapOperations.size - 1}"
 
             internal fun fromIntRange(
                 trackedHeap: TrackedHeap,
