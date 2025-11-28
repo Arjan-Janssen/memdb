@@ -7,7 +7,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 /**
- * Represent an operation on the memory heap. An operation can be an allocation or a deallocation.
+ * Represents an operation on the memory heap. A heap operation can be an allocation or a deallocation.
  * @param seqNo A unique sequence number of the operation. Sequence numbers are zero-based and increasing
  * for each heap operation in a tracked heap.
  * @param kind The kind of heap operation: allocation or deallocation.
@@ -125,7 +125,7 @@ data class HeapOperation internal constructor(
     /**
      * Pretty-prints the heap operation to a single line string.
      * For example:
-     * dealloc[seq no: 20, duration: 200ms, address: 00000002, size: 0, thread id: 4, backtrace: <hidden>]
+     * dealloc: seq no: 20, duration: 200ms, address: 00000002, size: 0, thread id: 4, backtrace: <hidden>
      * The backtrace is by default not printed, because it can be large and may clutter the text.
      * To print the heap operation with a full backtrace @see com.janssen.memdb.HeapOperation.toString(Boolean).
      * @return A pretty-printed string that describes the heap operation.*

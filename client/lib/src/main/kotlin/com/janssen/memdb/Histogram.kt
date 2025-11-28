@@ -4,6 +4,13 @@ import java.util.Locale
 import java.util.TreeMap
 import kotlin.takeHighestOneBit
 
+/**
+ * Stores a histogram of a tracked heap. The histogram counts how many heap allocations are performed for
+ * each bucket size. A histogram can be created by calling build.
+ *
+ * @param trackedHeap The tracked heap for which to compute a histogram.
+ * @param buckets Indicates whether to enable power-of-two bucketing for the histogram computation.
+ */
 @ConsistentCopyVisibility
 data class Histogram internal constructor(
     val frequencyMap: Map<Int, Int>,
