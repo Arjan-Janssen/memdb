@@ -135,6 +135,16 @@ Where ip is the IP address where the server application is running. It can be lo
 
 When the client is connected, the user application will continue execution and the memdb client will start collecting memory applications. 
 
+## Documentation
+
+The client is documented using KDoc. The Dokka Gradle plugin is used for generating documentation. It can be invoked using:
+
+```bash
+/gradlew build dokkaGenerateHtml
+```
+
+HTML documentation will be generated in the build/dokka directories.
+
 ## Troubleshooting
 
 ### Incorrect JVM version

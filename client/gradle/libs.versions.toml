@@ -1,24 +1,19 @@
 [versions]
-kotlin-version = "2.2.20"
 protobuf-version = "4.32.1"
-protobuf-plugin-version = "0.9.5"
 kotlinx-version = "0.3.6"
-detekt-version = "1.23.8"
-ktlint-version = "14.0.1"
-tasktree-version = "4.0.1"
 junit-version = "6.0.1"
+kotlin-version = "2.2.20"
 
 [libraries]
 google-protobuf-kotlin = { group = "com.google.protobuf", name = "protobuf-kotlin", version.ref = "protobuf-version" }
 jetbrains-kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin-version" }
-google-protobuf-gradle-plugin = { group = "com.google.protobuf", name = "protobuf-gradle-plugin", version.ref = "protobuf-plugin-version" }
-jetbrains-kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin-version" }
 jetbrains-kotlinx-cli = { group = "org.jetbrains.kotlinx", name = "kotlinx-cli", version.ref = "kotlinx-version" }
 test-junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-version" }
 test-junit-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-version" }
 
 [plugins]
-google-protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin-version" }
-arturbosch-detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt-version" }
-jlleitschuh-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-version" }
-dorongold-tasktree = { id = "com.dorongold.task-tree", version.ref = "tasktree-version" }
+google-protobuf = { id = "com.google.protobuf", version = "0.9.5" }
+arturbosch-detekt = { id = "io.gitlab.arturbosch.detekt", version = "1.23.8" }
+jlleitschuh-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "14.0.1" }
+dorongold-tasktree = { id = "com.dorongold.task-tree", version = "4.0.1" }
+jetbrains-dokka = { id = "org.jetbrains.dokka", version = "2.1.0" }
