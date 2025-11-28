@@ -288,6 +288,8 @@ data class TrackedHeap(
         }
     }
 
+    fun saveToFile(filePath: String) = toProtobuf().writeTo(File(filePath).outputStream())
+
     private fun plotGraphHeading(
         columns: Int,
         maxHeapSize: Int,
@@ -463,13 +465,30 @@ data class TrackedHeap(
         return maxHeapSize
     }
 
+    /**
+     * Represents the dimensions of a textual graph plot, in columns and rows.
+     *
+     * @param columns Each column is a special character to use for plotting graphs, such as '#' character for a bar.
+     * This field indicates the maximum number of such characters to plot in a graph bar. This is not the actual
+     * maximum width of the graph, because labels are excluded.
+     * @param rows Each row represents a line in the plot. The number of rows is just an indication of the number
+     * of lines to use for plotting. The actual number may be adjusted so that each line shows a fixed integer
+     * number of heap operations.
+     */
     data class PlotDimensions(
         val columns: Int,
         val rows: Int,
     )
 
+    /**
+     * Plots a graph of the tracked heap to a string
+     *
+     * @param range The range of heap operations that should be plotted.
+     * @param dimensions The dimensions of the plot. See @plotDimensions.
+     * @return A string containing a visual graph plot of the tracked heap.
+     */
     fun plotGraph(
-        operationRange: IntRange,
+        range: IntRange,
         dimensions: PlotDimensions,
     ) = StringBuilder()
         .apply {
@@ -478,17 +497,17 @@ data class TrackedHeap(
                 return toString()
             }
 
-            require(operationRange.first >= 0)
-            require(operationRange.first <= operationRange.last)
+            require(range.first >= 0)
+            require(range.first <= range.last)
             require(dimensions.columns >= MIN_GRAPH_COLUMNS)
             require(dimensions.rows >= MIN_GRAPH_ROWS)
 
             val heapGraph = HeapGraph.compute(heapOperations)
-            val maxHeapSize = maxHeapSize(operationRange, heapGraph.sizeChanges)
+            val maxHeapSize = maxHeapSize(range, heapGraph.sizeChanges)
             require(0 <= maxHeapSize)
             appendLine(plotGraphHeading(dimensions.columns, maxHeapSize))
 
-            val numOperations = 1 + (operationRange.last - operationRange.first)
+            val numOperations = 1 + (range.last - range.first)
             val clampedRows = if (numOperations < dimensions.rows) numOperations else dimensions.rows
             if (clampedRows == 0) {
                 return toString()
@@ -500,13 +519,13 @@ data class TrackedHeap(
                     '+',
                     '-',
                 )
-            for (rowSeqNo in operationRange step operationsPerRow) {
+            for (rowSeqNo in range step operationsPerRow) {
                 append(
                     plotGraphRow(
                         RowOperations(
                             rowSeqNo,
                             operationsPerRow,
-                            operationRange,
+                            range,
                         ),
                         dimensions.columns,
                         numPlotCharacters(
@@ -520,12 +539,10 @@ data class TrackedHeap(
             }
 
             // print potential terminating markers
-            markers(operationRange.last + 1).forEach {
+            markers(range.last + 1).forEach {
                 appendLine(plotGraphMarker(it, dimensions.columns))
             }
         }.toString()
-
-    fun saveToFile(filePath: String) = toProtobuf().writeTo(File(filePath).outputStream())
 
     internal fun toProtobuf(): memdb.Message.Update =
         memdb.Message.Update
@@ -561,6 +578,12 @@ data class TrackedHeap(
         return TrackedHeap(validHeapOperations, markers)
     }
 
+    /**
+     * Selects the specified subrange of tracked heap operations from a tracked heap.
+     *
+     * @param range A closed range of heap operations that should be selected. The range should be ascending.
+     * @return A new tracked heap object containing the specified range of heap operations.
+     */
     fun select(range: Range): TrackedHeap = TrackedHeap(heapOperations.slice(range.range), markers)
 
     companion object {
@@ -574,6 +597,13 @@ data class TrackedHeap(
                 ).addMarkers(trackedHeaps.map { it.markers }.flatten())
                 .build()
 
+        /**
+         * Loads a tracked heap from a file at the specified file path. The file should have been written using
+         * saveToFile using the same version of the application (no versioning yet).
+         *
+         * @param filePath A path to a valid memdb file.
+         * @return A tracked heap loaded from the file.
+         */
         fun loadFromFile(filePath: String) =
             fromProtobuf(
                 memdb.Message.Update.parseFrom(

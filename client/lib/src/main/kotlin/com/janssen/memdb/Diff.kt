@@ -218,6 +218,23 @@ data class Diff private constructor(
             }
         }
 
+        /**
+         * Computes a diff on the specified trackedHeap.
+         * Diffs are calculated on closed intervals of heap operation ranges. The difference between the
+         * memory state before the start heap operation and the memory state after the end heap operation is
+         * calculated.
+         *
+         * @param trackedHeap The heap for which to compute a diff.
+         * @param diffSpec A diff-spec in the format of `x..y`, specifying a closed interval of heap operations.
+         * The values x and y are sequence numbers of heap operations or named marker labels with an optional index.
+         * The memory states before the operation x and after the operation y are used for the diff calculation.
+         * A heap operation does not represent a single memory state but represents a change in memory state.
+         * This means that a diff on diff-spec 0..0 always returns exactly operation 0 (the memory state changes
+         * by the heap operation). Similarly, diff `0..n-1`, where n is the number of heap operations in the
+         * tracked heap, returns the difference between the memory states when the capture started and when the capture
+         * ended.
+         * @return A Diff object representing the computed diff.
+         */
         fun compute(
             trackedHeap: TrackedHeap,
             diffSpec: String,

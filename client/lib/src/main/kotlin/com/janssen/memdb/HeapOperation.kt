@@ -85,8 +85,22 @@ data class HeapOperation(
         var backtrace = ""
     }
 
+    /**
+     * Converts the heap operation to a pretty-printed single line string.
+     * For example:
+     * dealloc[seq no: 20, duration: 200ms, address: 00000002, size: 0, thread id: 4, backtrace: <hidden>]
+     * The backtrace is by default not printed, because it can be large and may clutter the text.
+     * To print the heap operation with a full backtrace @see com.janssen.memdb.HeapOperation.toString(Boolean).
+     * @return A pretty-printed string that describes the heap operation.*
+     */
     override fun toString() = toString(false)
 
+    /**
+     * Converts the heap operation to a pretty-printed single line string.
+     *
+     * @param showBacktrace Indicates whether to include the backtrace. @note Backtraces may contain many lines of text.
+     * @return A pretty-printed string that describes the heap operation.
+     */
     fun toString(showBacktrace: Boolean) =
         StringBuilder()
             .append(if (kind == Kind.Alloc) "alloc[" else "dealloc[")

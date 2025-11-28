@@ -28,6 +28,14 @@ class Client {
         return TrackedHeap.fromProtobuf(message)
     }
 
+    /**
+     * Connects to the memdb server to capture a tracked heap. The function returns when the server
+     * sends the final heap operation.
+     *
+     * @param hostName The name of the host to connect to. Can be localhost if the server runs locally.
+     * @param port The port to connect to. The default port where the server port is 8989 but this can be configured.
+     * @return The tracked heap that was collected from the server.
+     */
     fun capture(
         hostName: String,
         port: Int,
