@@ -133,7 +133,7 @@ data class HeapOperation internal constructor(
     override fun toString() = toString(false)
 
     /**
-     * Converts the heap operation to a pretty-printed single line string.
+     * Pretty-prints the heap operation to a single line string.
      *
      * @param showBacktrace Indicates whether to include the backtrace. @note Backtraces may contain many lines of text.
      * @return A pretty-printed string that describes the heap operation.
@@ -164,8 +164,12 @@ data class HeapOperation internal constructor(
                     Kind.Alloc
                 }
 
-                else -> {
+                Message.HeapOperation.Kind.Dealloc -> {
                     Kind.Dealloc
+                }
+
+                else -> {
+                    throw IllegalArgumentException("Unexpected message kind ${proto.kind} for heap operation $proto")
                 }
             },
             proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS),
