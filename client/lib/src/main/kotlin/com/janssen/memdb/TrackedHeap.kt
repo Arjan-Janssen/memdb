@@ -11,12 +11,13 @@ import kotlin.math.min
 const val MIN_GRAPH_COLUMNS = 8
 const val MIN_GRAPH_ROWS = 0
 
+@ConsistentCopyVisibility
 @Suppress("TooManyFunctions")
-data class TrackedHeap(
+data class TrackedHeap internal constructor(
     val heapOperations: List<HeapOperation>,
     val markers: List<Marker>,
 ) {
-    class Builder {
+    internal class Builder {
         val heapOperations = mutableListOf<HeapOperation>()
         val markers = mutableListOf<Marker>()
 

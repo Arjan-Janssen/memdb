@@ -6,7 +6,20 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-data class HeapOperation(
+/**
+ * Represent an operation on the memory heap. An operation can be an allocation or a deallocation.
+ * @param seqNo A unique sequence number of the operation. Sequence numbers are zero-based and increasing
+ * for each heap operation in a tracked heap.
+ * @param kind The kind of heap operation: allocation or deallocation.
+ * @param durationSinceServerStart This is the time since the moment when the memdb server tread started.
+ * @param address The allocated address or the address that was deallocated.
+ * @param size The size, in bytes, of the allocation. If a deallocation is matched to an allocation then
+ * the size can be used to store the amount of memory that was deallocated.
+ * @param threadId The thread id where the heap operation was executed.
+ * @param backtracke a string storing a full backtrace of the function where the heap operation was executed.
+ */
+@ConsistentCopyVisibility
+data class HeapOperation internal constructor(
     val seqNo: Int,
     val kind: Kind,
     val durationSinceServerStart: Duration,
@@ -15,14 +28,38 @@ data class HeapOperation(
     val threadId: Int,
     val backtrace: String,
 ) {
+    /**
+     * Represent the kind of heap operation: allocation or deallocation.
+     */
     enum class Kind {
         Alloc,
         Dealloc,
     }
 
-    class Builder(
+    /**
+     * Builder for creating heap operations. Offers a fluent-style interface to conveniently create
+     * heap operations. Properties can be set using the member functions. The first step
+     * is to call alloc or dealloc to set the type of heap operation. Next, additional properties
+     * can be set if needed. When all the properties are set, build can be called to create
+     * an immutable heap operation.
+     *
+     * Example usage:
+     * val allocation =
+     *   HeapOperationBuilder()
+     *    .alloc(address, size)
+     *    .threadId(theThread)
+     *    .duration(duration)
+     *    .build()
+     */
+    internal class Builder(
         var seqNo: Int = 0,
     ) {
+        /**
+         * Builds a heap operation using the properties that were set on the builder.
+         *
+         * @return A heap operation with the properties set on the builder. By default a
+         * 0 byte alloc will be created at address 0.
+         */
         fun build(): HeapOperation =
             HeapOperation(
                 seqNo++,
@@ -55,7 +92,7 @@ data class HeapOperation(
                 size = newSize
             }
 
-        fun sentinel() =
+        internal fun sentinel() =
             apply {
                 kind = Kind.Alloc
                 address = 0

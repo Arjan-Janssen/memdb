@@ -4,7 +4,8 @@ import java.util.Locale
 import java.util.TreeMap
 import kotlin.takeHighestOneBit
 
-data class Histogram(
+@ConsistentCopyVisibility
+data class Histogram internal constructor(
     val frequencyMap: Map<Int, Int>,
 ) {
     /**

@@ -1,6 +1,7 @@
 package com.janssen.memdb
 
-data class Marker(
+@ConsistentCopyVisibility
+data class Marker internal constructor(
     val firstOperationSeqNo: Int,
     val name: String,
     val index: Int = 0,
