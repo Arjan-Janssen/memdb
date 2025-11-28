@@ -236,11 +236,11 @@ data class Diff private constructor(
             val removed = mutableSetOf<HeapOperation>()
             selectedHeap.heapOperations.forEach {
                 when (it.kind) {
-                    HeapOperationKind.Alloc -> {
+                    HeapOperation.Kind.Alloc -> {
                         added.add(it)
                     }
 
-                    HeapOperationKind.Dealloc -> {
+                    HeapOperation.Kind.Dealloc -> {
                         removeAllocation(added, removed, it)
                     }
                 }

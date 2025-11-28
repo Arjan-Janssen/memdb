@@ -205,7 +205,7 @@ data class TrackedHeap(
     private fun adjustSize(
         cumulativeSize: Int,
         heapOperation: HeapOperation,
-    ) = if (heapOperation.kind == HeapOperationKind.Alloc) {
+    ) = if (heapOperation.kind == HeapOperation.Kind.Alloc) {
         cumulativeSize + heapOperation.size
     } else {
         cumulativeSize - heapOperation.size
@@ -270,7 +270,7 @@ data class TrackedHeap(
                 var currentHeapSize = 0
                 heapOperations.forEach { op ->
                     val sizeChange =
-                        if (op.kind == HeapOperationKind.Alloc) {
+                        if (op.kind == HeapOperation.Kind.Alloc) {
                             op.size
                         } else {
                             -op.size
@@ -544,12 +544,12 @@ data class TrackedHeap(
         val validHeapOperations = mutableListOf<HeapOperation>()
         heapOperations.forEachIndexed { index, heapOperation ->
             when (heapOperation.kind) {
-                HeapOperationKind.Alloc -> {
+                HeapOperation.Kind.Alloc -> {
                     allocsByAddress[heapOperation.address] = heapOperation
                     validHeapOperations.add(heapOperation)
                 }
 
-                HeapOperationKind.Dealloc -> {
+                HeapOperation.Kind.Dealloc -> {
                     val matchingAlloc = allocsByAddress[heapOperation.address]
                     if (matchingAlloc != null) {
                         validHeapOperations.add(heapOperation.asMatched(matchingAlloc))

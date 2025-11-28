@@ -25,7 +25,7 @@ class TrackedHeapBuilderTest {
         val expectedAlloc =
             HeapOperation(
                 initialSequenceNumber + numBuilderOperations,
-                HeapOperationKind.Alloc,
+                HeapOperation.Kind.Alloc,
                 durationSinceServerStart = 200.toDuration(DurationUnit.MILLISECONDS),
                 address = 2,
                 size = 4,
@@ -35,7 +35,7 @@ class TrackedHeapBuilderTest {
         val expectedDealloc =
             HeapOperation(
                 initialSequenceNumber + numBuilderOperations + 1,
-                HeapOperationKind.Dealloc,
+                HeapOperation.Kind.Dealloc,
                 durationSinceServerStart = 400.toDuration(DurationUnit.MILLISECONDS),
                 address = 10,
                 size = 1,
@@ -46,7 +46,7 @@ class TrackedHeapBuilderTest {
             listOf(
                 HeapOperation(
                     initialSequenceNumber + numBuilderOperations,
-                    HeapOperationKind.Alloc,
+                    HeapOperation.Kind.Alloc,
                     durationSinceServerStart = 200.toDuration(DurationUnit.MILLISECONDS),
                     address = 2,
                     size = 4,
@@ -55,7 +55,7 @@ class TrackedHeapBuilderTest {
                 ),
                 HeapOperation(
                     initialSequenceNumber + numBuilderOperations + 1,
-                    HeapOperationKind.Dealloc,
+                    HeapOperation.Kind.Dealloc,
                     durationSinceServerStart = 400.toDuration(DurationUnit.MILLISECONDS),
                     address = 10,
                     size = 1,
@@ -98,7 +98,7 @@ class TrackedHeapRangeTest {
             listOf(
                 HeapOperation(
                     0,
-                    HeapOperationKind.Alloc,
+                    HeapOperation.Kind.Alloc,
                     durationSinceServerStart = 200.toDuration(DurationUnit.MILLISECONDS),
                     address = 2,
                     size = 4,
@@ -107,7 +107,7 @@ class TrackedHeapRangeTest {
                 ),
                 HeapOperation(
                     1,
-                    HeapOperationKind.Dealloc,
+                    HeapOperation.Kind.Dealloc,
                     durationSinceServerStart = 400.toDuration(DurationUnit.MILLISECONDS),
                     address = 10,
                     size = 2,
@@ -270,7 +270,7 @@ class TrackedHeapTest {
             listOf(
                 HeapOperation(
                     0,
-                    HeapOperationKind.Alloc,
+                    HeapOperation.Kind.Alloc,
                     durationSinceServerStart = 200.toDuration(DurationUnit.MILLISECONDS),
                     address = 2,
                     size = 4,
@@ -279,7 +279,7 @@ class TrackedHeapTest {
                 ),
                 HeapOperation(
                     1,
-                    HeapOperationKind.Dealloc,
+                    HeapOperation.Kind.Dealloc,
                     durationSinceServerStart = 400.toDuration(DurationUnit.MILLISECONDS),
                     address = 2,
                     size = 4,
@@ -299,7 +299,7 @@ class TrackedHeapTest {
             listOf(
                 HeapOperation(
                     0,
-                    HeapOperationKind.Dealloc,
+                    HeapOperation.Kind.Dealloc,
                     durationSinceServerStart = 400.toDuration(DurationUnit.MILLISECONDS),
                     address = 2,
                     size = 4,
@@ -316,7 +316,7 @@ class TrackedHeapTest {
             listOf(
                 HeapOperation(
                     2,
-                    HeapOperationKind.Alloc,
+                    HeapOperation.Kind.Alloc,
                     durationSinceServerStart = 600.toDuration(DurationUnit.MILLISECONDS),
                     address = 64,
                     size = 2,
@@ -325,7 +325,7 @@ class TrackedHeapTest {
                 ),
                 HeapOperation(
                     3,
-                    HeapOperationKind.Alloc,
+                    HeapOperation.Kind.Alloc,
                     durationSinceServerStart = 1000.toDuration(DurationUnit.MILLISECONDS),
                     address = 128,
                     size = 2,

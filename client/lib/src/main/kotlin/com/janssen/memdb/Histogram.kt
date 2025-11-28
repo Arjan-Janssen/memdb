@@ -31,7 +31,7 @@ data class Histogram(
         ) = Histogram(
             TreeMap(
                 trackedHeap.heapOperations
-                    .filter { it.kind == HeapOperationKind.Alloc }
+                    .filter { it.kind == HeapOperation.Kind.Alloc }
                     .groupingBy { if (buckets) pow2Bucket(it.size) else it.size }
                     .eachCount(),
             ),

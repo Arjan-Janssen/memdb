@@ -11,7 +11,7 @@ class HeapOperationBuilderTest {
         val alloc =
             HeapOperation(
                 10,
-                HeapOperationKind.Alloc,
+                HeapOperation.Kind.Alloc,
                 durationSinceServerStart = 200.toDuration(DurationUnit.MILLISECONDS),
                 address = 2,
                 size = 4,
@@ -35,7 +35,7 @@ class HeapOperationBuilderTest {
         val dealloc =
             HeapOperation(
                 10,
-                HeapOperationKind.Dealloc,
+                HeapOperation.Kind.Dealloc,
                 durationSinceServerStart = 500.toDuration(DurationUnit.MILLISECONDS),
                 address = 3,
                 size = 0,

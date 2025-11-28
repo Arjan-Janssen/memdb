@@ -6,20 +6,20 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-enum class HeapOperationKind {
-    Alloc,
-    Dealloc,
-}
-
 data class HeapOperation(
     val seqNo: Int,
-    val kind: HeapOperationKind,
+    val kind: Kind,
     val durationSinceServerStart: Duration,
     val address: Int,
     val size: Int,
     val threadId: Int,
     val backtrace: String,
 ) {
+    enum class Kind {
+        Alloc,
+        Dealloc,
+    }
+
     class Builder(
         var seqNo: Int = 0,
     ) {
@@ -38,14 +38,14 @@ data class HeapOperation(
             newAddress: Int,
             newSize: Int,
         ) = apply {
-            kind = HeapOperationKind.Alloc
+            kind = Kind.Alloc
             address = newAddress
             size = newSize
         }
 
         fun dealloc(newAddress: Int) =
             apply {
-                kind = HeapOperationKind.Dealloc
+                kind = Kind.Dealloc
                 address = newAddress
                 size = 0
             }
@@ -57,7 +57,7 @@ data class HeapOperation(
 
         fun sentinel() =
             apply {
-                kind = HeapOperationKind.Alloc
+                kind = Kind.Alloc
                 address = 0
                 size = 0
             }
@@ -77,7 +77,7 @@ data class HeapOperation(
                 backtrace = newBacktrace
             }
 
-        var kind = HeapOperationKind.Alloc
+        var kind = Kind.Alloc
         var durationSinceServerStart = Duration.ZERO
         var address = 0
         var size = 0
@@ -89,7 +89,7 @@ data class HeapOperation(
 
     fun toString(showBacktrace: Boolean) =
         StringBuilder()
-            .append(if (kind == HeapOperationKind.Alloc) "alloc[" else "dealloc[")
+            .append(if (kind == Kind.Alloc) "alloc[" else "dealloc[")
             .append("seq no: $seqNo, duration: $durationSinceServerStart, ")
             .append(
                 String.format(
@@ -110,11 +110,11 @@ data class HeapOperation(
             seqNo,
             when (proto.kind) {
                 Message.HeapOperation.Kind.Alloc -> {
-                    HeapOperationKind.Alloc
+                    Kind.Alloc
                 }
 
                 else -> {
-                    HeapOperationKind.Dealloc
+                    Kind.Dealloc
                 }
             },
             proto.microsSinceServerStart.toDuration(DurationUnit.MICROSECONDS),
@@ -129,7 +129,7 @@ data class HeapOperation(
                 .newBuilder()
                 .setKind(
                     when (heapOperation.kind) {
-                        HeapOperationKind.Alloc -> memdb.Message.HeapOperation.Kind.Alloc
+                        HeapOperation.Kind.Alloc -> memdb.Message.HeapOperation.Kind.Alloc
                         else -> memdb.Message.HeapOperation.Kind.Dealloc
                     },
                 ).setMicrosSinceServerStart(heapOperation.durationSinceServerStart.inWholeMicroseconds)
@@ -151,5 +151,5 @@ data class HeapOperation(
             backtrace,
         )
 
-    fun sentinel() = kind == HeapOperationKind.Alloc && size == 0
+    fun sentinel() = kind == Kind.Alloc && size == 0
 }
