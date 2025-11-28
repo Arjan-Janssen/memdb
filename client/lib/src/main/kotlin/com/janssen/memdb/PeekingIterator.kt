@@ -2,11 +2,11 @@ package com.janssen.memdb
 
 // Implementation based on
 // https://stackoverflow.com/questions/77174295/peeking-into-an-iterator
-interface PeekingIterator<T> : Iterator<T> {
+internal interface PeekingIterator<T> : Iterator<T> {
     fun peek(): T
 }
 
-fun <T> Iterator<T>.peeking(): PeekingIterator<T> =
+internal fun <T> Iterator<T>.peeking(): PeekingIterator<T> =
     if (this is PeekingIterator) {
         this
     } else {

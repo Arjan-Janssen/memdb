@@ -1,6 +1,6 @@
 package com.janssen.memdb
 
-enum class AnsiColor(
+internal enum class AnsiColor(
     val code: String,
 ) {
     RED("\u001b[31m"),
@@ -11,7 +11,7 @@ enum class AnsiColor(
     override fun toString(): String = code
 }
 
-enum class DiffColor(
+internal enum class DiffColor(
     val color: AnsiColor,
 ) {
     ADD(AnsiColor.GREEN),

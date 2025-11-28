@@ -5,9 +5,8 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
-const val GRAPH_COLUMN_WIDTH = 8
-
-typealias HeapOperationIterator = PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>
+internal const val DEFAULT_PLOT_LAYOUT_COLUMN_WIDTH = 8
+internal typealias HeapOperationIterator = PeekingIterator<MutableMap.MutableEntry<Int, List<HeapOperation>>>
 
 @ExposedCopyVisibility
 data class Diff private constructor(
@@ -18,7 +17,7 @@ data class Diff private constructor(
         StringBuilder()
             .apply {
                 if (added.isEmpty() && removed.isEmpty()) {
-                    append(NO_DIFF)
+                    append(MESSAGE_NO_DIFF)
                     return toString()
                 }
                 if (added.isNotEmpty()) {
@@ -58,7 +57,7 @@ data class Diff private constructor(
                 val removedByAddress = removed.groupBy { it.address }.toSortedMap()
                 val addedAndRemovedByAddress = (added + removed).groupBy { it.address }.toSortedMap()
                 if (addedAndRemovedByAddress.isEmpty()) {
-                    return NO_DIFF
+                    return MESSAGE_NO_DIFF
                 }
                 val minAddress = addedAndRemovedByAddress.firstKey()
                 val lastAddress =
@@ -162,7 +161,7 @@ data class Diff private constructor(
                 append(
                     String.format(
                         Locale.getDefault(),
-                        "%${GRAPH_COLUMN_WIDTH - 1}d",
+                        "%${DEFAULT_PLOT_LAYOUT_COLUMN_WIDTH - 1}d",
                         alloc.seqNo,
                     ),
                 )
@@ -195,7 +194,7 @@ data class Diff private constructor(
                         continue
                     }
 
-                    repeat(GRAPH_COLUMN_WIDTH - 1) {
+                    repeat(DEFAULT_PLOT_LAYOUT_COLUMN_WIDTH - 1) {
                         append(" ")
                     }
                     append('.')

@@ -3,7 +3,7 @@ package com.janssen.memdb
 import java.text.ParseException
 
 @Suppress("TooManyFunctions")
-class InteractiveMode(
+internal class InteractiveMode(
     val memDB: MemDB,
 ) {
     private fun printNoTrackedHeap() {

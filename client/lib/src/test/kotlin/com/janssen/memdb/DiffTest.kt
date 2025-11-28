@@ -118,6 +118,6 @@ ${DiffColor.CLR.color.code}${DiffColor.ADD.color.code}+ 2 bytes${DiffColor.CLR.c
     fun `toString prints no-diff if there is no difference`() {
         val trackedHeap = createMatchedAllocAndDeallocScenario()
         val diff = Diff.compute(trackedHeap, "0..1")
-        assertEquals(NO_DIFF, diff.toString())
+        assertEquals(MESSAGE_NO_DIFF, diff.toString())
     }
 }

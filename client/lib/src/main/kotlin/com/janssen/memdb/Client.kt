@@ -5,7 +5,7 @@ import java.lang.Thread.sleep
 import java.net.InetSocketAddress
 import java.net.Socket
 
-const val SOCKET_POLL_WAIT_MILLIS = 100L
+internal const val SOCKET_POLL_WAIT_MILLIS = 100L
 
 class Client {
     private fun pollMessage(socket: Socket): TrackedHeap? {

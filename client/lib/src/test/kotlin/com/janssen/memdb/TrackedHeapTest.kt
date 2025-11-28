@@ -499,7 +499,7 @@ markers:
     fun `plotGraph without heap operations`() {
         val trackedHeap = TrackedHeap(emptyList<HeapOperation>(), emptyList<Marker>())
         assertEquals(
-            NO_HEAP_OPERATIONS,
+            MESSAGE_NO_HEAP_OPERATIONS,
             trackedHeap.plotGraph(
                 IntRange(0, 0),
                 TrackedHeap.PlotDimensions(DEFAULT_TEST_COLUMNS, DEFAULT_TEST_ROWS),

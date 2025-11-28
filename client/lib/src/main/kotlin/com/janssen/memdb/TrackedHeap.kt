@@ -474,7 +474,7 @@ data class TrackedHeap(
     ) = StringBuilder()
         .apply {
             if (heapOperations.isEmpty()) {
-                append(NO_HEAP_OPERATIONS)
+                append(MESSAGE_NO_HEAP_OPERATIONS)
                 return toString()
             }
 
