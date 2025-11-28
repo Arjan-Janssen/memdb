@@ -77,7 +77,7 @@ data class Diff private constructor(
     /**
      * Plots the memory layout of the diff operations. This plots a graph showing where in the
      * memory heap operations were added or removed. The memory region is subdivided into a number of
-     * <i>cells</>. For each cell the first heap operation that was added or removed is shown.
+     * <i>cells</i>. For each cell the first heap operation that was added or removed is shown.
      *
      * For example:
      * Address range: 6194336..1560286350

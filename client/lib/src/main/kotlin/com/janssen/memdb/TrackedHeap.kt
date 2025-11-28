@@ -11,12 +11,22 @@ import kotlin.math.min
 internal const val MIN_GRAPH_COLUMNS = 8
 internal const val MIN_GRAPH_ROWS = 0
 
+/**
+ * A tracked heap stores an immutable sequence of heap operations and markers. A tracked heap can be
+ * created using its associated Builder.
+ */
 @ConsistentCopyVisibility
 @Suppress("TooManyFunctions")
 data class TrackedHeap internal constructor(
     val heapOperations: List<HeapOperation>,
     val markers: List<Marker>,
 ) {
+    /**
+     * Builder for creating tracked heaps. Offers a fluent-style interface to conveniently create
+     * tracked heaps. Markers and heap operations can be added using the add functions. When all the
+     * heap operations and markers are added, build can be called to create an immutable tracked heap.
+     * The builder cannot be reused, so a new builder should be created for a new tracked heap.
+     */
     internal class Builder {
         val heapOperations = mutableListOf<HeapOperation>()
         val markers = mutableListOf<Marker>()
@@ -36,11 +46,6 @@ data class TrackedHeap internal constructor(
                 heapOperations.forEach { op ->
                     addHeapOperation(op)
                 }
-            }
-
-        fun addSentinel(): Builder =
-            apply {
-                heapOperations.add(HeapOperation.Builder().sentinel().build())
             }
 
         fun addMarker(marker: Marker): Builder =

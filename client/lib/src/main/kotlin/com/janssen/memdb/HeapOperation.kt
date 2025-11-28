@@ -29,7 +29,7 @@ data class HeapOperation internal constructor(
     val backtrace: String,
 ) {
     /**
-     * Represent the kind of heap operation: allocation or deallocation.
+     * Indicates the kind of heap operation: allocation or deallocation.
      */
     enum class Kind {
         Alloc,

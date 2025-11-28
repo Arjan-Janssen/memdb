@@ -6,17 +6,14 @@ import kotlin.takeHighestOneBit
 
 /**
  * Stores a histogram of a tracked heap. The histogram counts how many heap allocations are performed for
- * each bucket size. A histogram can be created by calling build.
- *
- * @param trackedHeap The tracked heap for which to compute a histogram.
- * @param buckets Indicates whether to enable power-of-two bucketing for the histogram computation.
+ * each bucket size. A histogram can be created by calling Histogram.build.
  */
 @ConsistentCopyVisibility
 data class Histogram internal constructor(
     val frequencyMap: Map<Int, Int>,
 ) {
     /**
-     * Converts the histogram to a string. The string will be in the format:
+     * Pretty-prints the histogram to a string. The string will be in the format:
      * (alloc size: frequency)
      * 1	3
      * 2	3
@@ -43,10 +40,12 @@ data class Histogram internal constructor(
             }
 
         /**
-         * Builds a histogram of the specified tracked heap. It counts how many heap allocations are performed for
-         * each bucket size. Either power-of-two bucketing can be used or the original allocation sizes.
+         * Builds a histogram for the specified tracked heap. This function counts how many heap allocations
+         * are performed for each bucket. Either power-of-two bucketing or the original allocation sizes can be used.
+         *
          * When power-of-two bucketing is enabled, allocations will be counted in the smallest power-of-two
-         * bucket that encompasses their size.
+         * bucket that encompasses their size. This means that an alloc of size 16 will be counted in bucket 16
+         * and an alloc of size 17 will be counted in bucket 32.
          *
          * @param trackedHeap The tracked heap for which to compute a histogram.
          * @param buckets Indicates whether to enable power-of-two bucketing for the histogram computation.
