@@ -18,7 +18,7 @@ data class Histogram(
             }.toString()
 
     companion object {
-        fun pow2Bucket(value: Int) =
+        internal fun pow2Bucket(value: Int) =
             if (value.takeHighestOneBit() == value) {
                 value
             } else {

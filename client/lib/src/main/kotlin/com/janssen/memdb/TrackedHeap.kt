@@ -527,7 +527,7 @@ data class TrackedHeap(
 
     fun saveToFile(filePath: String) = toProtobuf().writeTo(File(filePath).outputStream())
 
-    fun toProtobuf(): memdb.Message.Update =
+    internal fun toProtobuf(): memdb.Message.Update =
         memdb.Message.Update
             .newBuilder()
             .apply {
@@ -539,7 +539,7 @@ data class TrackedHeap(
                 }
             }.build()
 
-    fun withoutUnmatchedDeallocs(): TrackedHeap {
+    internal fun withoutUnmatchedDeallocs(): TrackedHeap {
         val allocsByAddress = mutableMapOf<Int, HeapOperation>()
         val validHeapOperations = mutableListOf<HeapOperation>()
         heapOperations.forEachIndexed { index, heapOperation ->
@@ -564,7 +564,7 @@ data class TrackedHeap(
     fun select(range: Range): TrackedHeap = TrackedHeap(heapOperations.slice(range.range), markers)
 
     companion object {
-        fun concatenate(trackedHeaps: List<TrackedHeap>) =
+        internal fun concatenate(trackedHeaps: List<TrackedHeap>) =
             Builder()
                 .addHeapOperations(
                     trackedHeaps
@@ -583,7 +583,7 @@ data class TrackedHeap(
                 ),
             )
 
-        fun fromProtobuf(update: memdb.Message.Update): TrackedHeap {
+        internal fun fromProtobuf(update: memdb.Message.Update): TrackedHeap {
             fun isSentinel(heapOperation: memdb.Message.HeapOperation) =
                 heapOperation.kind == Message.HeapOperation.Kind.Alloc && heapOperation.size == 0L
 

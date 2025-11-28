@@ -8,14 +8,14 @@ data class Marker(
     override fun toString() = "marker[name: $name, index: $index, seq-no: $firstOperationSeqNo]"
 
     companion object {
-        fun fromProtobuf(proto: memdb.Message.Marker) =
+        internal fun fromProtobuf(proto: memdb.Message.Marker) =
             Marker(
                 proto.firstOperationSeqNo.toInt(),
                 proto.name,
                 proto.index.toInt(),
             )
 
-        fun toProtobuf(marker: Marker): memdb.Message.Marker =
+        internal fun toProtobuf(marker: Marker): memdb.Message.Marker =
             memdb.Message.Marker
                 .newBuilder()
                 .setName(marker.name)

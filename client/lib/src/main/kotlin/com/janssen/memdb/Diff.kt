@@ -100,7 +100,7 @@ data class Diff private constructor(
             multiple: Int,
         ) = ceil(value.toDouble() / multiple).toInt() * multiple
 
-        fun inAddressRange(
+        private fun inAddressRange(
             alloc: HeapOperation?,
             cellAddressRange: IntRange,
         ): Boolean {

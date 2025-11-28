@@ -103,7 +103,7 @@ data class HeapOperation(
             .toString()
 
     companion object {
-        fun fromProtobuf(
+        internal fun fromProtobuf(
             seqNo: Int,
             proto: memdb.Message.HeapOperation,
         ) = HeapOperation(
@@ -124,7 +124,7 @@ data class HeapOperation(
             proto.backtrace,
         )
 
-        fun toProtobuf(heapOperation: HeapOperation) =
+        internal fun toProtobuf(heapOperation: HeapOperation) =
             memdb.Message.HeapOperation
                 .newBuilder()
                 .setKind(
@@ -140,7 +140,7 @@ data class HeapOperation(
                 .build()
     }
 
-    fun asMatched(alloc: HeapOperation) =
+    internal fun asMatched(alloc: HeapOperation) =
         HeapOperation(
             seqNo,
             kind,
@@ -151,5 +151,5 @@ data class HeapOperation(
             backtrace,
         )
 
-    fun sentinel() = kind == Kind.Alloc && size == 0
+    internal fun sentinel() = kind == Kind.Alloc && size == 0
 }
