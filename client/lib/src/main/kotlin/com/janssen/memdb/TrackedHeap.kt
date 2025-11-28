@@ -8,8 +8,8 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
-const val MIN_GRAPH_COLUMNS = 8
-const val MIN_GRAPH_ROWS = 0
+internal const val MIN_GRAPH_COLUMNS = 8
+internal const val MIN_GRAPH_ROWS = 0
 
 @ConsistentCopyVisibility
 @Suppress("TooManyFunctions")
@@ -82,15 +82,90 @@ data class TrackedHeap internal constructor(
         return IntRange(fromPosition, toPosition)
     }
 
+    /**
+     * Pretty-prints the tracked heap to a string. The string shows all the heap operations and
+     * all markers in the tracked heap. Each heap operation and marker is a represented as a
+     * single line item.
+     *
+     * For example:
+     * heap operations:
+     *   alloc[seq no: 0, duration: 200ms, address: 00000002, size: 4, thread id: 5, backtrace: <hidden>] -> 4
+     *   dealloc[seq no: 1, duration: 400ms, address: 00000002, size: 4, thread id: 6, backtrace: <hidden>] -> 0
+     *
+     * markers:
+     *   marker[name: begin, index: 0, seq-no: 0]
+     *   marker[name: end, index: 1, seq-no: 1]
+     *
+     * In the example above the tracked heap contains an alloc followed by a matching dealloc. The
+     * tracked heap also has two markers: one named 'begin' and one named 'end'.
+     */
+    override fun toString() =
+        StringBuilder()
+            .apply {
+                if (heapOperations.isNotEmpty()) {
+                    append(heapOperationsToString(heapOperations))
+                }
+
+                if (markers.isNotEmpty()) {
+                    append(markersToString(markers))
+                }
+            }.toString()
+
+    /**
+     * Saves the tracked heap to a file.
+     *
+     * @param filePath A relative or absolute path to the file where the tracked heap will be saved. Existing files
+     * are overwritten.
+     */
+    fun saveToFile(filePath: String) = toProtobuf().writeTo(File(filePath).outputStream())
+
+    /**
+     * Represents a valid range in a tracked heap. The range indices are guaranteed to be valid in the
+     * tracked heap.
+     */
     @ConsistentCopyVisibility
     data class Range private constructor(
         val trackedHeap: TrackedHeap,
         val range: IntRange,
     ) {
         companion object {
-            fun wholeRangeInclusiveStr(trackedHeap: TrackedHeap) = "0..${trackedHeap.heapOperations.size - 1}"
+            /**
+             * Creates a Range from a tracked heap and a range specification string.
+             *
+             * @param trackedHeap The tracked heap for which the range should be valid.
+             * @param spec A specification of a range within the tracked heap.
+             * For example:
+             *  `0..5`
+             *      A range with heap operations 0 to 5 inclusive.
+             *  `begin..end`
+             *      A range including the first heap operation after the begin marker until the
+             *      last operation before the end marker.
+             *  `frame:0..frame:1`
+             *      A range starting at the first heap operation after frame marker with index 0
+             *      until the last heap operation before the frame marker with index 1.
+             * @throws ParseException if the from- or to- positions are invalid, if the markers are invalid,
+             * or if the positions of the marker are invalid.
+             * @return The specified valid range.
+             */
+            fun fromString(
+                trackedHeap: TrackedHeap,
+                spec: String,
+            ): Range {
+                val fromToSpec = spec.split("..")
+                if (fromToSpec.size != 2) {
+                    throw ParseException("Invalid diff spec $spec. Expected format [from]..[to]", 0)
+                }
+                val range = trackedHeap.createIntRange(spec)
+                return fromIntRange(trackedHeap, range)
+            }
 
-            fun fromIntRange(
+            /**
+             * Creates a range spec string representing the full range of the specified tracked heap.
+             * @param trackedHeap The tracked heap for which the full range should be returned.
+             */
+            fun wholeRangeSpec(trackedHeap: TrackedHeap) = "0..${trackedHeap.heapOperations.size - 1}"
+
+            internal fun fromIntRange(
                 trackedHeap: TrackedHeap,
                 range: IntRange,
             ): Range {
@@ -111,22 +186,10 @@ data class TrackedHeap internal constructor(
                 checkPositionValid(range.last, "to-position")
                 return TrackedHeap.Range(trackedHeap, range)
             }
-
-            fun fromString(
-                trackedHeap: TrackedHeap,
-                spec: String,
-            ): Range {
-                val fromToSpec = spec.split("..")
-                if (fromToSpec.size != 2) {
-                    throw ParseException("Invalid diff spec $spec. Expected format [from]..[to]", 0)
-                }
-                val range = trackedHeap.createIntRange(spec)
-                return fromIntRange(trackedHeap, range)
-            }
         }
     }
 
-    fun markers(firstOperationSeqNo: Int): List<Marker> {
+    internal fun markers(firstOperationSeqNo: Int): List<Marker> {
         val matches = mutableListOf<Marker>()
         markers.forEach {
             if (it.firstOperationSeqNo == firstOperationSeqNo) {
@@ -136,7 +199,7 @@ data class TrackedHeap internal constructor(
         return matches
     }
 
-    fun marker(
+    internal fun marker(
         name: String,
         index: Int,
     ): Marker? =
@@ -145,7 +208,7 @@ data class TrackedHeap internal constructor(
                 it.name == name && it.index == index
             }
 
-    fun marker(name: String) = marker(name, 0)
+    internal fun marker(name: String) = marker(name, 0)
 
     private fun position(
         positionSpec: String,
@@ -199,9 +262,9 @@ data class TrackedHeap internal constructor(
         return position ?: markerPosition(markerName, markerIndex, isFrom)
     }
 
-    fun fromPosition(positionSpec: String) = position(positionSpec, true)
+    internal fun fromPosition(positionSpec: String) = position(positionSpec, true)
 
-    fun toPosition(positionSpec: String) = position(positionSpec, false)
+    internal fun toPosition(positionSpec: String) = position(positionSpec, false)
 
     private fun adjustSize(
         cumulativeSize: Int,
@@ -232,18 +295,6 @@ data class TrackedHeap internal constructor(
                 append("\n\nmarkers:")
                 markers.forEach {
                     append("\n  $it")
-                }
-            }.toString()
-
-    override fun toString() =
-        StringBuilder()
-            .apply {
-                if (heapOperations.isNotEmpty()) {
-                    append(heapOperationsToString(heapOperations))
-                }
-
-                if (markers.isNotEmpty()) {
-                    append(markersToString(markers))
                 }
             }.toString()
 
@@ -288,8 +339,6 @@ data class TrackedHeap internal constructor(
             }
         }
     }
-
-    fun saveToFile(filePath: String) = toProtobuf().writeTo(File(filePath).outputStream())
 
     private fun plotGraphHeading(
         columns: Int,

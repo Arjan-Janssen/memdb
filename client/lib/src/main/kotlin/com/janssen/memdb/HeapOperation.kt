@@ -38,9 +38,9 @@ data class HeapOperation internal constructor(
 
     /**
      * Builder for creating heap operations. Offers a fluent-style interface to conveniently create
-     * heap operations. Properties can be set using the member functions. The first step
+     * heap operations. Heap operation properties can be set using the member functions. The first step
      * is to call alloc or dealloc to set the type of heap operation. Next, additional properties
-     * can be set if needed. When all the properties are set, build can be called to create
+     * can be set, if needed. When all the properties are set, build can be called to create
      * an immutable heap operation.
      *
      * Example usage:
@@ -55,9 +55,9 @@ data class HeapOperation internal constructor(
         var seqNo: Int = 0,
     ) {
         /**
-         * Builds a heap operation using the properties that were set on the builder.
+         * Builds a heap operation with the properties that were set on the builder.
          *
-         * @return A heap operation with the properties set on the builder. By default a
+         * @return A heap operation with the properties set on the builder. By default, a
          * 0 byte alloc will be created at address 0.
          */
         fun build(): HeapOperation =
@@ -123,7 +123,7 @@ data class HeapOperation internal constructor(
     }
 
     /**
-     * Converts the heap operation to a pretty-printed single line string.
+     * Pretty-prints the heap operation to a single line string.
      * For example:
      * dealloc[seq no: 20, duration: 200ms, address: 00000002, size: 0, thread id: 4, backtrace: <hidden>]
      * The backtrace is by default not printed, because it can be large and may clutter the text.

@@ -7,6 +7,10 @@ import java.net.Socket
 
 internal const val SOCKET_POLL_WAIT_MILLIS = 100L
 
+/**
+ * Client can be used to connect to a memdb server and capture a tracked heap. The function
+ * capture should be called to establish a connection and capture a tracked heap from the server.
+ */
 class Client {
     private fun pollMessage(socket: Socket): TrackedHeap? {
         fun isSentinel(heapOperation: memdb.Message.HeapOperation): Boolean =
@@ -29,7 +33,7 @@ class Client {
     }
 
     /**
-     * Connects to the memdb server to capture a tracked heap. The function returns when the server
+     * Connects to the memdb server to capture a <i>tracked heap</>. The function returns when the server
      * sends the final heap operation.
      *
      * @param hostName The name of the host to connect to. Can be localhost if the server runs locally.

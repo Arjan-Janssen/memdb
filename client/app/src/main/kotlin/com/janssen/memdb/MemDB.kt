@@ -54,7 +54,7 @@ internal class MemDB(
                 memDB.trackedHeap?.let {
                     memDB.doPlot(
                         it,
-                        range ?: TrackedHeap.Range.wholeRangeInclusiveStr(it),
+                        range ?: TrackedHeap.Range.wholeRangeSpec(it),
                         columns,
                         rows,
                     )

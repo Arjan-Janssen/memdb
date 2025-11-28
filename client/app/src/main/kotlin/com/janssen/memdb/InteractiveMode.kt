@@ -108,7 +108,7 @@ internal class InteractiveMode(
         memDB.trackedHeap?.also {
             memDB.doPlot(
                 it,
-                optionalArg(args, 1) ?: TrackedHeap.Range.wholeRangeInclusiveStr(it),
+                optionalArg(args, 1) ?: TrackedHeap.Range.wholeRangeSpec(it),
                 optionalIntArg(args, 2, "columns", DEFAULT_PLOT_COLUMNS),
                 optionalIntArg(args, 3, "rows", DEFAULT_PLOT_COLUMNS),
             )
