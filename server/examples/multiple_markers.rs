@@ -9,7 +9,7 @@ fn growing_vec(iteration: i64) {
     for i in 0..grow_size {
         growing_vec.push(i);
     }
-    memdb_lib::server::send_marker_indexed("growing", iteration);
+    memdb_lib::server::send_marker("growing");
 }
 
 fn main() {
@@ -21,7 +21,7 @@ fn main() {
 
     for i in 0..NUM_ITERATIONS {
         growing_vec(i);
-        memdb_lib::server::send_marker_indexed("iteration", i);
+        memdb_lib::server::send_marker("iteration");
     }
     memdb_lib::server::send_marker("end");
     memdb_lib::server::send_terminate();

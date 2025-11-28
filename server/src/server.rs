@@ -1,5 +1,6 @@
 use protobuf::Message;
 use std::{
+    collections::HashMap,
     io::prelude::*,
     net::{TcpListener, TcpStream},
     sync::{
@@ -27,15 +28,9 @@ pub struct HeapOperation {
 }
 
 #[derive(Debug)]
-pub struct Marker {
-    pub name: &'static str,
-    pub index: i64,
-}
-
-#[derive(Debug)]
 pub enum ServerMessage {
     HeapOperation(HeapOperation),
-    Marker(Marker),
+    Marker(&'static str),
     Terminate,
 }
 
@@ -61,6 +56,7 @@ pub struct Server {
     num_bytes_sent: usize,
     start_time: SystemTime,
     terminate: bool,
+    marker_counts: HashMap<&'static str, i64>,
 }
 
 pub enum NetworkError {
@@ -120,6 +116,7 @@ impl Server {
                     num_bytes_sent: 0,
                     start_time: server_start_time,
                     terminate: false,
+                    marker_counts: HashMap::new(),
                 })
             }
             Err(e) => Err(e),
@@ -201,10 +198,14 @@ impl Server {
         Ok(())
     }
 
-    fn push_marker(&mut self, marker: Marker) {
+    fn push_marker(&mut self, name: &'static str) {
         let mut proto_marker = generated::message::Marker::new();
-        proto_marker.name = String::from(marker.name);
-        proto_marker.index = marker.index;
+        proto_marker.name = String::from(name);
+        if self.marker_counts.contains_key(name) {}
+
+        let marker_entry = self.marker_counts.entry(name).or_insert(0);
+        proto_marker.index = *marker_entry;
+        *marker_entry += 1;
         proto_marker.first_operation_seq_no =
             (self.num_heap_operations_sent + self.update.heap_operations.iter().count()) as i64;
         self.update.markers.push(proto_marker);
@@ -213,7 +214,7 @@ impl Server {
     fn process(&mut self, message: ServerMessage) -> Result<(), std::io::Error> {
         match message {
             ServerMessage::HeapOperation(heap_op) => self.push_heap_operation(heap_op),
-            ServerMessage::Marker(marker) => Ok(self.push_marker(marker)),
+            ServerMessage::Marker(name) => Ok(self.push_marker(name)),
             ServerMessage::Terminate => {
                 self.terminate = true;
                 self.push_heap_operation(HeapOperation::sentinel())
@@ -295,15 +296,8 @@ fn send_server_message(message: ServerMessage) {
     }
 }
 
-pub fn send_marker_indexed(name: &'static str, index: i64) {
-    send_server_message(ServerMessage::Marker(Marker {
-        name: name,
-        index: index,
-    }));
-}
-
 pub fn send_marker(name: &'static str) {
-    send_marker_indexed(name, 0);
+    send_server_message(ServerMessage::Marker(name));
 }
 
 pub fn send_terminate() {

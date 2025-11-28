@@ -32,5 +32,5 @@ name = "grow_vec"
 path = "examples/grow_vec.rs"
 
 [[example]]
-name = "indexed_markers"
-path = "examples/indexed_markers.rs"
+name = "multiple_markers"
+path = "examples/multiple_markers.rs"
