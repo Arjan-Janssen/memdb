@@ -1,6 +1,6 @@
 package com.janssen.memdb
 
-import memdb.Message.HeapOperation.Kind
+import com.janssen.memdb.Message.HeapOperation.Kind
 import java.lang.Thread.sleep
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -13,7 +13,7 @@ internal const val SOCKET_POLL_WAIT_MILLIS = 100L
  */
 class Client {
     private fun pollMessage(socket: Socket): TrackedHeap? {
-        fun isSentinel(heapOperation: memdb.Message.HeapOperation): Boolean =
+        fun isSentinel(heapOperation: Message.HeapOperation) =
             heapOperation.kind == Kind.Alloc && heapOperation.size.toInt() == 0
 
         val bytesAvailable = socket.inputStream.available()
@@ -21,7 +21,7 @@ class Client {
             return null
         }
         val bytesSent = socket.inputStream.readNBytes(bytesAvailable)
-        val message = memdb.Message.Update.parseFrom(bytesSent)
+        val message = Message.Update.parseFrom(bytesSent)
         if (message.heapOperationsList.isNotEmpty()) {
             val lastOperation = message.heapOperationsList.last()
             if (isSentinel(lastOperation)) {

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package memdb;
+package com.janssen.memdb;
 
 message HeapOperation {
     enum Kind {

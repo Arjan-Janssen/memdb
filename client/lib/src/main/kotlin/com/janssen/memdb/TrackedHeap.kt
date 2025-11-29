@@ -1,6 +1,6 @@
 package com.janssen.memdb
 
-import memdb.Message
+import com.janssen.memdb.Message
 import java.io.File
 import java.text.ParseException
 import java.util.Locale
@@ -598,8 +598,8 @@ data class TrackedHeap internal constructor(
             }
         }.toString()
 
-    internal fun toProtobuf(): memdb.Message.Update =
-        memdb.Message.Update
+    internal fun toProtobuf(): Message.Update =
+        Message.Update
             .newBuilder()
             .apply {
                 heapOperations.forEach {
@@ -660,18 +660,18 @@ data class TrackedHeap internal constructor(
          */
         fun loadFromFile(filePath: String) =
             fromProtobuf(
-                memdb.Message.Update.parseFrom(
+                Message.Update.parseFrom(
                     File(
                         filePath,
                     ).inputStream(),
                 ),
             )
 
-        internal fun fromProtobuf(update: memdb.Message.Update): TrackedHeap {
-            fun isSentinel(heapOperation: memdb.Message.HeapOperation) =
+        internal fun fromProtobuf(update: Message.Update): TrackedHeap {
+            fun isSentinel(heapOperation: Message.HeapOperation) =
                 heapOperation.kind == Message.HeapOperation.Kind.Alloc && heapOperation.size == 0L
 
-            fun isValid(heapOperation: memdb.Message.HeapOperation) =
+            fun isValid(heapOperation: Message.HeapOperation) =
                 heapOperation.kind != Message.HeapOperation.Kind.UNRECOGNIZED && !isSentinel(heapOperation)
 
             val validProtoHeapOperations =

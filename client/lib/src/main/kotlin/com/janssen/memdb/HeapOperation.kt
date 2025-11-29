@@ -1,6 +1,6 @@
 package com.janssen.memdb
 
-import memdb.Message
+import com.janssen.memdb.Message
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
@@ -156,7 +156,7 @@ data class HeapOperation internal constructor(
     companion object {
         internal fun fromProtobuf(
             seqNo: Int,
-            proto: memdb.Message.HeapOperation,
+            proto: Message.HeapOperation,
         ) = HeapOperation(
             seqNo,
             when (proto.kind) {
@@ -180,12 +180,12 @@ data class HeapOperation internal constructor(
         )
 
         internal fun toProtobuf(heapOperation: HeapOperation) =
-            memdb.Message.HeapOperation
+            Message.HeapOperation
                 .newBuilder()
                 .setKind(
                     when (heapOperation.kind) {
-                        HeapOperation.Kind.Alloc -> memdb.Message.HeapOperation.Kind.Alloc
-                        else -> memdb.Message.HeapOperation.Kind.Dealloc
+                        HeapOperation.Kind.Alloc -> Message.HeapOperation.Kind.Alloc
+                        else -> Message.HeapOperation.Kind.Dealloc
                     },
                 ).setMicrosSinceServerStart(heapOperation.durationSinceServerStart.inWholeMicroseconds)
                 .setAddress(heapOperation.address.toLong())

@@ -5,3 +5,5 @@ ktlint_standard = enabled
 ktlint_experimental = enabled
 ktlint_custom-rule-set = enabled
 # disabled_rules=redundant-curly-braces
+
+max_line_length = 120
