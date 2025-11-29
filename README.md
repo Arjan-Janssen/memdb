@@ -193,7 +193,6 @@ This project is licensed under the FreeBSD License - see LICENSE.md for details.
 * Setting default settings (columns, rows, etc) in a configuration file.
 * Added a bt command for only printing the backtrace of an operation.
 * Add a markers command that shows all the markers in the tracked heap.
-* Handle empty tracked heaps more gracefully.
 
 ## Acknowledgements
 
