@@ -316,9 +316,10 @@ pub fn send_heap_operation(heap_operation: HeapOperation) -> bool {
     send_server_message(ServerMessage::HeapOperation(heap_operation))
 }
 
-/// This function terminates the server thread. This function is thread-safe and can be called from
-/// any thread. This function should be called when the instrumented application terminates. The
-/// instrumented application should call join on the server thread after calling this function.
+/// Terminates the server thread. This function should be called when the instrumented application
+/// terminates. The instrumented application should call join on the server thread after calling
+/// this function.
+/// This function is thread-safe and can be called from any thread.
 pub fn send_terminate() -> bool {
     send_server_message(ServerMessage::Terminate)
 }

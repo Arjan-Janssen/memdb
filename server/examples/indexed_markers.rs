@@ -1,4 +1,4 @@
-use std::process;
+include!("checked_wrapper.rs");
 
 const NUM_ITERATIONS: i64 = 25;
 const GROW_SIZE_PER_ITERATION: i64 = 10000;
@@ -9,24 +9,18 @@ fn growing_vec(iteration: i64) {
     for i in 0..grow_size {
         growing_vec.push(i);
     }
-    memdb_lib::server::send_marker("growing");
+    checked_send_marker("growing");
 }
 
 fn main() {
-    let server_thread = memdb_lib::server::run_with_default_address().unwrap_or_else(|error| {
-        println!("Unable to run server on default address: {error:?}");
-        process::exit(-1);
-    });
-    memdb_lib::server::send_marker("begin");
+    let server_handle = checked_run_with_default_address();
+    checked_send_marker("begin");
 
     for i in 0..NUM_ITERATIONS {
         growing_vec(i);
-        memdb_lib::server::send_marker("iteration");
+        checked_send_marker("iteration");
     }
-    memdb_lib::server::send_marker("end");
-    memdb_lib::server::send_terminate();
-    server_thread.join().unwrap_or_else(|error| {
-        println!("Unable to join server thread: {error:?}");
-        process::exit(-1);
-    });
+    checked_send_marker("end");
+    checked_send_terminate();
+    checked_join_thread(server_handle);
 }

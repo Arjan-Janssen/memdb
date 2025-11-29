@@ -1,5 +1,6 @@
+include!("checked_wrapper.rs");
+
 use serde::Deserialize;
-use std::process;
 
 // Example from:
 // https://stackoverflow.com/questions/30292752/how-do-i-parse-a-json-file
@@ -45,17 +46,10 @@ fn parse_json() {
 }
 
 fn main() {
-    let server_thread = memdb_lib::server::run_with_default_address().unwrap_or_else(|error| {
-        println!("Unable to run server on default address: {error:?}");
-        process::exit(-1);
-    });
-
-    memdb_lib::server::send_marker("begin");
+    let server_handle = checked_run_with_default_address();
+    checked_send_marker("begin");
     parse_json();
-    memdb_lib::server::send_marker("end");
-    memdb_lib::server::send_terminate();
-    server_thread.join().unwrap_or_else(|error| {
-        println!("Unable to join server thread: {error:?}");
-        process::exit(-1);
-    });
+    checked_send_marker("end");
+    checked_send_terminate();
+    checked_join_thread(server_handle);
 }
