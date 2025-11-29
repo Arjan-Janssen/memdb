@@ -1,6 +1,5 @@
 package com.janssen.memdb
 
-import com.janssen.memdb.Message
 import java.io.File
 import java.text.ParseException
 import java.util.Locale
@@ -92,14 +91,14 @@ data class TrackedHeap internal constructor(
      * all markers in the tracked heap. Each heap operation and marker is a represented as a
      * single line item.
      *
-     * For example:
-     * heap operations:
-     *   alloc[seq no: 0, duration: 200ms, address: 00000002, size: 4, thread id: 5, backtrace: <hidden>] -> 4
-     *   dealloc[seq no: 1, duration: 400ms, address: 00000002, size: 4, thread id: 6, backtrace: <hidden>] -> 0
+     * For example:\
+     * heap operations:\
+     *   `alloc[seq no: 0, duration: 200ms, address: 00000002, size: 4, thread id: 5, backtrace: <hidden>] -> 4`\
+     *   `dealloc[seq no: 1, duration: 400ms, address: 00000002, size: 4, thread id: 6, backtrace: <hidden>] -> 0`\
      *
-     * markers:
-     *   marker[name: begin, index: 0, seq-no: 0]
-     *   marker[name: end, index: 1, seq-no: 1]
+     * markers:\
+     *   `marker[name: begin, index: 0, seq-no: 0]`\
+     *   `marker[name: end, index: 1, seq-no: 1]`\
      *
      * In the example above the tracked heap contains an alloc followed by a matching dealloc. The
      * tracked heap also has two markers: one named 'begin' and one named 'end'.
@@ -144,15 +143,15 @@ data class TrackedHeap internal constructor(
              *
              * @param trackedHeap The tracked heap for which the range should be valid.
              * @param spec A specification of a range within the tracked heap.
-             * For example:
-             *  `0..5`
-             *      A range with heap operations 0 to 5 inclusive.
-             *  `begin..end`
+             * For example:\
+             *  `0..5`\
+             *      A range with heap operations 0 to 5 inclusive.\
+             *  `begin..end`\
              *      A range including the first heap operation after the begin marker until the
-             *      last operation before the end marker.
-             *  `frame:0..frame:1`
+             *      last operation before the end marker.\
+             *  `frame:0..frame:1`\
              *      A range starting at the first heap operation after frame marker with index 0
-             *      until the last heap operation before the frame marker with index 1.
+             *      until the last heap operation before the frame marker with index 1.\
              * @throws ParseException if the from- or to- positions are invalid, if the markers are invalid,
              * or if the positions of the marker are invalid.
              * @return The specified valid range.
@@ -536,6 +535,21 @@ data class TrackedHeap internal constructor(
 
     /**
      * Plots a graph of the tracked heap to a string
+     *
+     * For example:\
+     * `allocated->                                                                                <-161`\
+     * `         0: +++++++++++++++++++++++++++++++++++++`\
+     * `     begin: ------------------------------------------------------------------------------------`\
+     * `         3: ###++`\
+     * `         6: ##############++++++++`\
+     * `         9: #############################################################################+++++++`
+     *
+     * In the example above hashes (#) represent the unchanged heap memory allocated. Minus (-) indicates the memory
+     * deallocated by a heap operation and plus (+) indicates the memory allocated by a heap operation. The
+     * number to the left of the bar indicates the sequence number of the visualized heap operation. Markers are
+     * visualized as lines of dashes (-) along with their name and their index, if non-zero. To conserve vertical
+     * space in the plot, some heap operations may be skipped, depending on the number of rows specified for the plot.
+     * The number on the top right shows the maximum total heap size allocated, which is 161 bytes here.
      *
      * @param range The range of heap operations that should be plotted.
      * @param dimensions The dimensions of the plot. See @plotDimensions.

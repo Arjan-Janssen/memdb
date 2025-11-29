@@ -57,7 +57,13 @@ You can use your favourite package manager, such as `apt` or `brew`, to install 
 
 ## Dependencies
 
-The client dependencies are listed in client/gradle/libs.version.toml.
+* ktlint - Used for linting the Kotlin code. Configuration can be found in client/.editerconfig.
+* KDetekt - Used for checking Kotlin coding style. Configuration can be found in client/config/detekt.
+* Google protobuf - Used for generating Java code from protobuf message.
+* tasktree - Utility for printing Gradle task dependencies.
+* Dokka - Used for generating KDoc documentation
+
+The full list of client dependencies can be found in client/gradle/libs.version.toml.
 
 The server depends on the following Rust crates:
 
@@ -137,13 +143,14 @@ When the client is connected, the user application will continue execution and t
 
 ## Documentation
 
-The client is documented using KDoc. The Dokka Gradle plugin is used for generating documentation. It can be invoked using:
+The client is documented using KDoc. The Dokka Gradle plugin is used for generating documentation. It can be generated and published using:
 
 ```bash
-/gradlew build dokkaGenerateHtml
+./gradlew dokkaGenerateHtml
+./gradlew build :lib:logLinkDokkaGeneratePublicationHtml
 ```
 
-HTML documentation will be generated in the build/dokka directories.
+HTML documentation will be generated in the build/dokka directories. Library documentation will be published to: `http://localhost:63342/com.janssen.memdb/lib/build/dokka/html/index.html`.
 
 ## Troubleshooting
 

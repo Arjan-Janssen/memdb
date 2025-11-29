@@ -1,6 +1,5 @@
 package com.janssen.memdb
 
-import com.janssen.memdb.Message
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
@@ -125,15 +124,15 @@ data class HeapOperation internal constructor(
     /**
      * Pretty-prints the heap operation to a single line string.
      * For example:
-     * dealloc: seq no: 20, duration: 200ms, address: 00000002, size: 0, thread id: 4, backtrace: <hidden>
+     * `dealloc: seq no: 20, duration: 200ms, address: 00000002, size: 0, thread id: 4, backtrace: <hidden>`
      * The backtrace is by default not printed, because it can be large and may clutter the text.
-     * To print the heap operation with a full backtrace @see com.janssen.memdb.HeapOperation.toString(Boolean).
+     * To print the heap operation with a full backtrace call `toString(true)`.
      * @return A pretty-printed string that describes the heap operation.*
      */
     override fun toString() = toString(false)
 
     /**
-     * Pretty-prints the heap operation to a single line string.
+     * Pretty-prints the heap operation with or without backtrace.
      *
      * @param showBacktrace Indicates whether to include the backtrace. @note Backtraces may contain many lines of text.
      * @return A pretty-printed string that describes the heap operation.

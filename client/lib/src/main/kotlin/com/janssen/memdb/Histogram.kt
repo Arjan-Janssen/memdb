@@ -14,9 +14,9 @@ data class Histogram internal constructor(
 ) {
     /**
      * Pretty-prints the histogram to a string. The string will be in the format:
-     * (alloc size: frequency)
-     * 1	3
-     * 2	3
+     * `(alloc size: frequency)`\
+     * `1	3`\
+     * `2	3`\
      * For each line the first number indicates the size of the bucket and the second number the
      * number of allocations that were performed falling within this bucket.
      * @return A pretty-printed string representing the histogram.

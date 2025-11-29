@@ -11,15 +11,6 @@ internal typealias HeapOperationIterator = PeekingIterator<MutableMap.MutableEnt
 /**
  * Represents a change (diff) in heap memory. A change can add (+) or remove (-) allocations or
  * deallocations relative to the initial memory state.
- *
- * For example:
- * + alloc[seq no: 0, duration: 0s, address: 00000001, size: 2, thread id: 0, backtrace: <hidden>]
- * - dealloc[seq no: 0, duration: 0s, address: 00000002, size: 1, thread id: 0, backtrace: <hidden>]
- * + 2 bytes, -1 bytes
- *
- * Indicates that a single allocation was added and a single deallocation was removed compared to
- * the initial memory state. This amounts to an increase of 2 bytes and a decrease of 1 byte.
- * @return A pretty-printed string that describes the diff
  */
 @ExposedCopyVisibility
 data class Diff private constructor(
@@ -29,10 +20,12 @@ data class Diff private constructor(
     /**
      * Converts the diff to a pretty-printed string. ANSI colors are used to make the text more
      * easily readable.
-     * For example:
-     * + alloc[seq no: 0, duration: 0s, address: 00000001, size: 2, thread id: 0, backtrace: <hidden>]
-     * - dealloc[seq no: 0, duration: 0s, address: 00000002, size: 1, thread id: 0, backtrace: <hidden>]
-     * + 2 bytes, -1 bytes
+     *
+     * For example:\
+     * `+ alloc[seq no: 0, duration: 0s, address: 00000001, size: 2, thread id: 0, backtrace: <hidden>]`\
+     * `- dealloc[seq no: 0, duration: 0s, address: 00000002, size: 1, thread id: 0, backtrace: <hidden>]`\
+     * `+ 2 bytes, -1 bytes`
+     *
      * Indicates that a single allocation was added and a single deallocation was removed compared to the initial
      * memory state. This amounts to an increase of 2 bytes and a decrease of 1 byte.
      * @return A pretty-printed string that describes the diff
@@ -79,14 +72,14 @@ data class Diff private constructor(
      * memory heap operations were added or removed. The memory region is subdivided into a number of
      * <i>cells</i>. For each cell the first heap operation that was added or removed is shown.
      *
-     * For example:
-     * Address range: 6194336..1560286350
-     * 005e84a0:       3+       .       .       .       .       .       .       .       .       .
-     * 12e53b02:        .       .       .       .       .       .       .       .       .       .
-     * 256bf164:        .       .       .       .       .       .       .       .       .       .
-     * 37f2a7c6:        .       .       .       .       .       .       .       .       .       .
-     * 4a795e28:        .       .       .       .       .       .       .       .       .      8+
-     * 5d00148a:        .       .       .       .       .       .       .       .       .       .
+     * For example:\
+     * `Address range: 6194336..1560286350`\
+     * `005e84a0:       3+       .       .       .       .       .       .       .`\
+     * `12e53b02:        .       .       .       .       .       .       .       .`\
+     * `256bf164:        .       .       .       .       .       .       .       .`\
+     * `37f2a7c6:        .       .       .       .       .       .       .       .`\
+     * `4a795e28:        .       .       .       .       .       .       .      8+`\
+     * `5d00148a:        .       .       .       .       .       .       .       .`
      *
      * @param dimensions The dimensions (columns and rows) indicating the number of cells in the
      * visual memory plot.
@@ -274,7 +267,7 @@ data class Diff private constructor(
          * by the heap operation). Similarly, diff `0..n-1`, where n is the number of heap operations in the
          * tracked heap, returns the difference between the memory states when the capture started and when the capture
          * ended. The indices in the diff spec should be valid for the specified tracked heap.
-         * @throws
+         * @throws java.text.ParseException When the diff spec contains an invalid range or uses undefined markers.
          * @return A Diff object storing the memory heap differences computed for the specified tracked heap
          * and diff-spec.
          */
