@@ -276,6 +276,10 @@ pub fn run(server_ip_address: IpAddress) -> Result<JoinHandle<()>, std::io::Erro
     server_thread_id
 }
 
+/// Creates a server thread at the default address localhost:8989. The function
+/// returns a join handle if it succeeds. The instrumented application should join
+/// with this thread after calling send_terminate, when it terminates.
+/// This function can return an std::io::Error when it fails.
 pub fn run_with_default_address() -> Result<JoinHandle<()>, std::io::Error> {
     run(IpAddress {
         host: "127.0.0.1",
@@ -285,25 +289,36 @@ pub fn run_with_default_address() -> Result<JoinHandle<()>, std::io::Error> {
 
 pub static SERVER: AtomicPtr<Server> = AtomicPtr::<Server>::new(std::ptr::null_mut());
 
-fn send_server_message(message: ServerMessage) {
+fn send_server_message(message: ServerMessage) -> bool {
     let server_ptr = SERVER.load(Ordering::Acquire);
     if server_ptr.is_null() {
-        return;
+        return false;
     }
 
     unsafe {
         (*server_ptr).send(message);
     }
+
+    true
 }
 
-pub fn send_marker(name: &'static str) {
-    send_server_message(ServerMessage::Marker(name));
+/// Sends a marker with the specified name to the server. When multiple markers with the same name
+/// are sent, the server will automatically assign increasing indices so that each marker can be
+/// uniquely identified.
+/// This function is thread-safe and can be called from any thread.
+pub fn send_marker(name: &'static str) -> bool {
+    send_server_message(ServerMessage::Marker(name))
 }
 
-pub fn send_terminate() {
-    send_server_message(ServerMessage::Terminate);
+/// Sends a heap operation to the server.
+/// This function is thread-safe and can be called from any thread.
+pub fn send_heap_operation(heap_operation: HeapOperation) -> bool {
+    send_server_message(ServerMessage::HeapOperation(heap_operation))
 }
 
-pub fn send_heap_operation(heap_operation: HeapOperation) {
-    send_server_message(ServerMessage::HeapOperation(heap_operation));
+/// This function terminates the server thread. This function is thread-safe and can be called from
+/// any thread. This function should be called when the instrumented application terminates. The
+/// instrumented application should call join on the server thread after calling this function.
+pub fn send_terminate() -> bool {
+    send_server_message(ServerMessage::Terminate)
 }

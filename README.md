@@ -143,6 +143,18 @@ When the client is connected, the user application will continue execution and t
 
 ## Documentation
 
+### Server
+
+The server is documented using Rustdoc. Run the following command to generate the documentation:
+
+```bash
+ cargo doc
+ ```
+
+ The HTML documentation will be generated in `server/target/doc/memdb_lib/index.html`.
+
+### Client
+
 The client is documented using KDoc. The Dokka Gradle plugin is used for generating documentation. It can be generated and published using:
 
 ```bash

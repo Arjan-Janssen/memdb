@@ -15,10 +15,21 @@ fn main() {
         println!("Unable to run server on default address: {error:?}");
         process::exit(-1);
     });
-    memdb_lib::server::send_marker("begin");
+    if !memdb_lib::server::send_marker("begin") {
+        println!("Unable to send begin marker");
+        process::exit(-1);
+    }
     grow_vec();
-    memdb_lib::server::send_marker("end");
-    memdb_lib::server::send_terminate();
+    if !memdb_lib::server::send_marker("end") {
+        println!("Unable to send end marker");
+        process::exit(-1);
+    }
+
+    if !memdb_lib::server::send_terminate() {
+        println!("Unable to terminate server");
+        process::exit(-1);
+    }
+
     server_thread.join().unwrap_or_else(|error| {
         println!("Unable to join server thread: {error:?}");
         process::exit(-1);
